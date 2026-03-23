@@ -1,0 +1,75 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: local-music-db
+    restart: unless-stopped
+    shm_size: 128mb
+    environment:
+      POSTGRES_USER: ziitar
+      POSTGRES_PASSWORD: ${SQL_PASSWORD:-password}
+      POSTGRES_DB: localmusic
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - ${POSTGRES_DATA_PATH:-postgres_data}:/var/lib/postgresql/data
+      - ${DBS_PATH:-./dbs}:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - local_music_net
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: local-music-backend
+    restart: unless-stopped
+    # user: "${PUID:-1993}:${PGID:-1993}"
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    environment:
+      SQL_HOST: postgres
+      SQL_PORT: ${POSTGRES_PORT:-5432}
+      SQL_USER: ziitar
+      SQL_PASSWORD: ${SQL_PASSWORD:-password}
+      SQL_DATABASE: localmusic
+      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production}
+      FFMPEG_PATH: /usr/bin/ffmpeg
+      # Intel GPU acceleration (VAAPI)
+      LIBVA_DRIVER_NAME: i965
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ${MUSIC_PATH:-./music}:/music:ro
+      - ${CONFIG_PATH:-./config}:/app/config:ro
+      - ${PUBLIC_PATH:-./public}:/app/public:rw
+    # Intel GPU device access
+    devices:
+      - /dev/dri:/dev/dri
+    # Uncomment for NVIDIA GPU acceleration:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - local_music_net
+
+volumes:
+  postgres_data:
+
+networks:
+  local_music_net:

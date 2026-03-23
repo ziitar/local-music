@@ -1,0 +1,87 @@
+import { create } from "zustand";
+import { auth as authApi } from "../services/api.ts";
+import type { User } from "../types/index.ts";
+
+interface AuthState {
+  user: User | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  isAdmin: boolean;
+
+  login: (
+    username: string,
+    password: string,
+  ) => Promise<{ success: boolean; message: string }>;
+  register: (
+    username: string,
+    password: string,
+  ) => Promise<{ success: boolean; message: string }>;
+  logout: () => void;
+  checkAuth: () => Promise<void>;
+}
+
+export const useAuthStore = create<AuthState>((set) => ({
+  user: null,
+  isLoading: true,
+  isAuthenticated: false,
+  isAdmin: false,
+
+  login: async (username, password) => {
+    try {
+      const result = await authApi.login(username, password);
+      if (result.success && result.user) {
+        set({
+          user: result.user,
+          isAuthenticated: true,
+          isAdmin: result.user.role === 'admin',
+        });
+        return { success: true, message: result.message };
+      }
+      return { success: false, message: result.message };
+    } catch (error) {
+      return { success: false, message: (error as Error).message };
+    }
+  },
+
+  register: async (username, password) => {
+    try {
+      const result = await authApi.register(username, password);
+      if (result.success && result.user) {
+        set({
+          user: result.user,
+          isAuthenticated: true,
+          isAdmin: result.user.role === 'admin',
+        });
+        return { success: true, message: result.message };
+      }
+      return { success: false, message: result.message };
+    } catch (error) {
+      return { success: false, message: (error as Error).message };
+    }
+  },
+
+  logout: () => {
+    authApi.logout();
+    set({ user: null, isAuthenticated: false, isAdmin: false });
+  },
+
+  checkAuth: async () => {
+    if (!authApi.isAuthenticated()) {
+      set({ isLoading: false, isAuthenticated: false, isAdmin: false });
+      return;
+    }
+
+    try {
+      const user = await authApi.me();
+      set({
+        user,
+        isAuthenticated: true,
+        isLoading: false,
+        isAdmin: user.role === 'admin',
+      });
+    } catch {
+      authApi.logout();
+      set({ user: null, isAuthenticated: false, isLoading: false, isAdmin: false });
+    }
+  },
+}));
