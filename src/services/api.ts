@@ -8,7 +8,7 @@ import type {
   User,
 } from "../types";
 
-const API_BASE = window.location.origin;
+import { API_BASE } from "../config";
 
 function getToken(): string | null {
   return localStorage.getItem("token");

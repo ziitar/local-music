@@ -3,6 +3,15 @@ import { usePlayerStore } from "../../stores/playerStore.ts";
 import { history, songs as songsApi } from "../../services/api.ts";
 import { formatDuration } from "../../lib/utils.ts";
 import {
+  updateMediaSessionMetadata,
+  setupMediaSessionHandlers,
+  updateMediaSessionPlaybackState,
+} from "../../services/mediaSession.ts";
+import {
+  startBackgroundAudio,
+  stopBackgroundAudio,
+} from "../../services/backgroundAudio.ts";
+import {
   ChevronDown,
   Pause,
   Play,
@@ -152,9 +161,18 @@ export function PlayerBar() {
 
     if (isPlaying) {
       audioRef.current.play().catch(console.error);
+      startBackgroundAudio();
     } else {
       audioRef.current.pause();
+      stopBackgroundAudio();
     }
+
+    // Update Media Session playback state
+    updateMediaSessionPlaybackState({
+      isPlaying,
+      currentTime: audioRef.current.currentTime || 0,
+      duration: effectiveDuration,
+    });
   }, [isPlaying]);
 
   useEffect(() => {
@@ -162,6 +180,12 @@ export function PlayerBar() {
 
     const handleTimeUpdate = () => {
       setCurrentTime(audioRef.current?.currentTime || 0);
+      // Update Media Session playback state for lock screen progress
+      updateMediaSessionPlaybackState({
+        isPlaying: !audioRef.current?.paused,
+        currentTime: audioRef.current?.currentTime || 0,
+        duration: effectiveDuration,
+      });
     };
 
     const handleLoadedMetadata = () => {
@@ -213,6 +237,29 @@ export function PlayerBar() {
       audioRef.current?.removeEventListener("error", handleError);
     };
   }, [playNext, currentSong, selectedBitrate, playMode]);
+
+  // Media Session: register action handlers
+  useEffect(() => {
+    setupMediaSessionHandlers({
+      onPlay: () => setIsPlaying(true),
+      onPause: () => setIsPlaying(false),
+      onPreviousTrack: playPrev,
+      onNextTrack: playNext,
+      onSeekTo: (time) => {
+        if (audioRef.current) {
+          audioRef.current.currentTime = time;
+          setCurrentTime(time);
+        }
+      },
+    });
+  }, [playNext, playPrev, setIsPlaying, setCurrentTime]);
+
+  // Media Session: update metadata when song changes
+  useEffect(() => {
+    if (currentSong) {
+      updateMediaSessionMetadata(currentSong);
+    }
+  }, [currentSong?.id]);
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const time = parseFloat(e.target.value);

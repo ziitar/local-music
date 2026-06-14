@@ -24,3 +24,8 @@ dist-ssr
 *.sw?
 public/covers/*
 .env
+
+# Android build artifacts
+android/app/build
+android/.gradle
+android/build

@@ -6,6 +6,7 @@ import { usePlayerStore } from "../../stores/playerStore.ts";
 import { useAuthStore } from "../../stores/authStore.ts";
 import { Menu, LogOut, User } from "lucide-react";
 import { Button } from "../ui/Button.tsx";
+import { API_BASE } from "../../config";
 
 export function Layout() {
   const { currentSong } = usePlayerStore();
@@ -42,7 +43,7 @@ export function Layout() {
 
   // Get cover image URL from current song
   const coverUrl = currentSong?.cover_image
-    ? `${window.location.origin}${currentSong.cover_image}`
+    ? `${API_BASE}${currentSong.cover_image}`
     : null;
 
   return (

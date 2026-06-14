@@ -6,27 +6,33 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:android": "tsc -b && vite build && npx cap sync android",
+    "open:android": "npx cap open android",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor/android": "^8.4.0",
+    "@capacitor/core": "^8.4.0",
     "@deno/vite-plugin": "^1.0.6",
     "@types/react": "^19.2.14",
     "@vitejs/plugin-react": "^5.1.4",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "cue-parser": "^0.3.0",
+    "esbuild": "^0.25.12",
+    "lucide-react": "^0.473.0",
     "music-metadata": "^11.12.3",
     "node-taglib-sharp": "6.0.1",
     "postgres": "^3.4.8",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.1.1",
-    "zustand": "^5.0.3",
-    "clsx": "^2.1.1",
     "tailwind-merge": "^2.6.0",
-    "class-variance-authority": "^0.7.1",
-    "lucide-react": "^0.473.0"
+    "zustand": "^5.0.3"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.4.0",
     "@eslint/js": "^9.39.1",
     "@types/node": "^24.10.1",
     "@types/react-dom": "^19.2.3",

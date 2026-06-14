@@ -9,7 +9,7 @@ interface SidebarProps {
   onLinkClick: () => void;
 }
 
-export function Sidebar({ isOpen, isMobile, onLinkClick }: SidebarProps) {
+export function Sidebar({ isOpen, isMobile: _isMobile, onLinkClick }: SidebarProps) {
   const location = useLocation();
   const { user, logout, isAdmin } = useAuthStore();
 

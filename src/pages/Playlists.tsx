@@ -12,7 +12,7 @@ import {
 import { ListMusic, Music, Plus, Trash2 } from "lucide-react";
 import type { Playlist as PlaylistType } from "../types/index.ts";
 
-const API_BASE = window.location.origin;
+import { API_BASE } from "../config";
 
 export function PlaylistsPage() {
   const [playlists, setPlaylists] = useState<PlaylistType[]>([]);
