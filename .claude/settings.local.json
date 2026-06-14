@@ -25,7 +25,11 @@
       "Bash(git fetch *)",
       "Bash(ssh -T git@github.com)",
       "Read(//home/ziitar/.ssh/**)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git config *)",
+      "Bash(git pull *)",
+      "Bash(git checkout *)"
     ]
   }
 }
