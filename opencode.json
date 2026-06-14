@@ -1,0 +1,27 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "tavily-mcp": {
+      "type": "remote",
+      "url": "https://mcp.tavily.com/mcp",
+      "oauth": false,
+      "headers": {
+        "Authorization": "Bearer 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",
+        "DEFAULT_PARAMETERS": "{\"max_results\": 5, \"search_depth\": \"advanced\"}"
+      },
+      "enabled": false
+    }
+  },
+  "provider": {
+    "local": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "LM studio (local)",
+      "options": {
+        "baseURL": "http://localhost:1234/v1"
+      }
+    }
+  },
+  "permission": {
+    "websearch": "allow"
+  }
+}

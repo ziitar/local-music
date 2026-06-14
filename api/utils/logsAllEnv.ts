@@ -1,0 +1,1 @@
+console.log("All environment variables:", Deno.env.toObject());

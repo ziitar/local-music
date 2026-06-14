@@ -1,0 +1,12 @@
+{
+  "allowedHost": [
+    "http://192.168.1.117:5173",
+    "http://localhost:5173"
+  ],
+  "qqServer": "http://localhost:3200",
+  "scanner": {
+    "batchSize": 10,
+    "concurrency": 3,
+    "maxCoverSizeMB": 5
+  }
+}
