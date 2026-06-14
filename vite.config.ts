@@ -11,6 +11,10 @@ export default defineConfig({
         target: "http://localhost:8000/",
         changeOrigin: true,
       },
+      "/covers": {
+        target: "http://localhost:8000/",
+        changeOrigin: true,
+      },
     },
   },
   plugins: [react(), deno()],

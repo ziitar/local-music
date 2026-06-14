@@ -41,7 +41,9 @@ export function Layout() {
   };
 
   // Get cover image URL from current song
-  const coverUrl = currentSong?.cover_image || null;
+  const coverUrl = currentSong?.cover_image
+    ? `${window.location.origin}${currentSong.cover_image}`
+    : null;
 
   return (
     <div className="flex h-screen relative overflow-hidden" style={{

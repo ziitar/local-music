@@ -14,6 +14,7 @@ interface PlayerState {
   duration: number;
   audioElement: HTMLAudioElement | null;
   playMode: PlayMode;
+  selectedBitrate: string;
 
   setCurrentSong: (song: Song | null) => void;
   setPlaylist: (songs: Song[], startIndex?: number) => void;
@@ -23,6 +24,7 @@ interface PlayerState {
   setDuration: (duration: number) => void;
   setAudioElement: (element: HTMLAudioElement) => void;
   setPlayMode: (mode: PlayMode) => void;
+  setSelectedBitrate: (bitrate: string) => void;
   cyclePlayMode: () => void;
   playNext: () => void;
   playPrev: () => void;
@@ -57,6 +59,7 @@ export const usePlayerStore = create<PlayerState>()(
       duration: 0,
       audioElement: null,
       playMode: "sequential",
+      selectedBitrate: "",
 
       setCurrentSong: (song) => set({ currentSong: song }),
       setPlaylist: (songs, startIndex = 0) =>
@@ -89,6 +92,7 @@ export const usePlayerStore = create<PlayerState>()(
         set({ audioElement: element });
       },
       setPlayMode: (mode) => set({ playMode: mode }),
+      setSelectedBitrate: (bitrate) => set({ selectedBitrate: bitrate }),
 
       cyclePlayMode: () => {
         const modes: PlayMode[] = [
@@ -169,10 +173,11 @@ export const usePlayerStore = create<PlayerState>()(
     }),
     {
       name: "player-storage",
-      // Only persist volume and playMode
+      // Only persist volume, playMode, and selectedBitrate
       partialize: (state) => ({
         volume: state.volume,
         playMode: state.playMode,
+        selectedBitrate: state.selectedBitrate,
       }),
     },
   ),

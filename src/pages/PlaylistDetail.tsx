@@ -7,7 +7,7 @@ import { formatDuration } from "../lib/utils.ts";
 import { ArrowLeft, Music, Pause, Play, Trash2 } from "lucide-react";
 import type { Playlist as PlaylistType } from "../types/index.ts";
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = window.location.origin;
 
 export function PlaylistDetailPage() {
   const { id } = useParams<{ id: string }>();

@@ -26,7 +26,6 @@ const BITRATE_OPTIONS = [
 
 export function PlayerBar() {
   const audioRef = useRef<HTMLAudioElement>(null);
-  const [selectedBitrate, setSelectedBitrate] = useState<string>("");
   const [showBitrateMenu, setShowBitrateMenu] = useState(false);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const bitrateMenuRef = useRef<HTMLDivElement>(null);
@@ -37,6 +36,7 @@ export function PlayerBar() {
     volume,
     currentTime,
     playMode,
+    selectedBitrate,
     setIsPlaying,
     setVolume,
     setCurrentTime,
@@ -44,6 +44,7 @@ export function PlayerBar() {
     audioElement,
     setAudioElement,
     cyclePlayMode,
+    setSelectedBitrate,
     playNext,
     playPrev,
   } = usePlayerStore();
