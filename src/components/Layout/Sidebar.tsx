@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { useAuthStore } from "../../stores/authStore.ts";
 import { Button } from "../ui/Button.tsx";
-import { Home, Library, ListMusic, LogOut, Settings, User, X } from "lucide-react";
+import { Home, Library, ListMusic, LogOut, Settings, User, Users, Disc, X } from "lucide-react";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -16,6 +16,8 @@ export function Sidebar({ isOpen, isMobile: _isMobile, onLinkClick }: SidebarPro
   const navItems = [
     { path: "/", icon: Home, label: "首页" },
     { path: "/library", icon: Library, label: "音乐库" },
+    { path: "/artists", icon: Users, label: "艺术家" },
+    { path: "/albums", icon: Disc, label: "专辑" },
     { path: "/playlists", icon: ListMusic, label: "歌单" },
   ];
 
@@ -33,7 +35,9 @@ export function Sidebar({ isOpen, isMobile: _isMobile, onLinkClick }: SidebarPro
         <nav className="flex-1 p-4">
           <ul className="space-y-2">
             {navItems.map((item) => {
-              const isActive = location.pathname === item.path;
+              const isActive = item.path === "/"
+                ? location.pathname === "/"
+                : location.pathname === item.path || location.pathname.startsWith(item.path + "/");
               return (
                 <li key={item.path}>
                   <Link
@@ -110,7 +114,9 @@ export function Sidebar({ isOpen, isMobile: _isMobile, onLinkClick }: SidebarPro
         <nav className="flex-1 p-4">
           <ul className="space-y-2">
             {navItems.map((item) => {
-              const isActive = location.pathname === item.path;
+              const isActive = item.path === "/"
+                ? location.pathname === "/"
+                : location.pathname === item.path || location.pathname.startsWith(item.path + "/");
               return (
                 <li key={item.path}>
                   <Link

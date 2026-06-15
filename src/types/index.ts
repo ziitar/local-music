@@ -22,11 +22,52 @@ export interface Song {
   format: string;
   cover_image?: string;
   created_at?: string;
+  album_id?: number;
+  track_no?: number;
   // 整轨音乐相关字段
   is_cue_track?: boolean;
   cue_file_path?: string;
   track_start_time?: number;
   track_end_time?: number;
+}
+
+export interface Artist {
+  id: number;
+  name: string;
+  alias: string | null;
+  song_count?: number;
+  album_count?: number;
+  albums?: Album[];
+  created_at?: string;
+}
+
+export interface Album {
+  id: number;
+  title: string;
+  cover_image: string | null;
+  thumbnail: string | null;
+  track_total: number | null;
+  disk_total: number | null;
+  release_year: number | null;
+  artist?: string;
+  song_count?: number;
+  songs?: Song[];
+  created_at?: string;
+}
+
+export interface LyricsResponse {
+  lrc: string | null;
+  translated_lrc?: string | null;
+}
+
+export interface ArtistsResponse {
+  artists: Artist[];
+  pagination: Pagination;
+}
+
+export interface AlbumsResponse {
+  albums: Album[];
+  pagination: Pagination;
 }
 
 export interface Playlist {

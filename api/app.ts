@@ -6,6 +6,9 @@ import songsRouter from "./routes/songs.ts";
 import playlistsRouter from "./routes/playlists.ts";
 import historyRouter from "./routes/history.ts";
 import configRouter from "./routes/config.ts";
+import artistsRouter from "./routes/artists.ts";
+import albumsRouter from "./routes/albums.ts";
+import lyricsRouter from "./routes/lyrics.ts";
 import { testConnection } from "./services/db.ts";
 
 export const app = new Application();
@@ -45,6 +48,9 @@ router.use(songsRouter.routes());
 router.use(playlistsRouter.routes());
 router.use(historyRouter.routes());
 router.use(configRouter.routes());
+router.use(artistsRouter.routes());
+router.use(albumsRouter.routes());
+router.use(lyricsRouter.routes());
 
 app.use(router.routes());
 app.use(router.allowedMethods());

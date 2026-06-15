@@ -23,6 +23,7 @@ import {
   Volume2,
   VolumeX,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "../ui/Button.tsx";
 
 const BITRATE_OPTIONS = [
@@ -291,7 +292,9 @@ export function PlayerBar() {
       <div className="flex items-center gap-1 sm:gap-4 max-w-screen-2xl mx-auto">
         {/* 歌曲信息 - 自适应宽度 */}
         <div className="flex-1 min-w-0 max-w-[120px] sm:max-w-[200px]">
-          <p className="font-medium text-sm sm:text-base truncate">{currentSong.title}</p>
+          <Link to={`/song/${currentSong.id}`} className="hover:underline">
+            <p className="font-medium text-sm sm:text-base truncate">{currentSong.title}</p>
+          </Link>
           <p className="text-xs sm:text-sm text-muted-foreground truncate">
             {currentSong.artist}
           </p>

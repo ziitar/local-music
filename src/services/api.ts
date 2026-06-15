@@ -1,6 +1,11 @@
 import type {
+  Album,
+  AlbumsResponse,
+  Artist,
+  ArtistsResponse,
   AuthResponse,
   Config,
+  LyricsResponse,
   PlayHistory,
   Playlist,
   Song,
@@ -217,5 +222,49 @@ export const config = {
       method: "PUT",
       body: JSON.stringify(config),
     });
+  },
+};
+
+export const artists = {
+  async list(
+    params: { page?: number; limit?: number; search?: string } = {},
+  ): Promise<ArtistsResponse> {
+    const searchParams = new URLSearchParams();
+    if (params.page) searchParams.set("page", String(params.page));
+    if (params.limit) searchParams.set("limit", String(params.limit));
+    if (params.search) searchParams.set("search", params.search);
+    const query = searchParams.toString();
+    return request(`/api/artists${query ? `?${query}` : ""}`);
+  },
+
+  async get(id: number): Promise<Artist> {
+    return request(`/api/artists/${id}`);
+  },
+};
+
+export const albums = {
+  async list(
+    params: { page?: number; limit?: number; search?: string; artist?: string } = {},
+  ): Promise<AlbumsResponse> {
+    const searchParams = new URLSearchParams();
+    if (params.page) searchParams.set("page", String(params.page));
+    if (params.limit) searchParams.set("limit", String(params.limit));
+    if (params.search) searchParams.set("search", params.search);
+    if (params.artist) searchParams.set("artist", params.artist);
+    const query = searchParams.toString();
+    return request(`/api/albums${query ? `?${query}` : ""}`);
+  },
+
+  async get(id: number): Promise<Album> {
+    return request(`/api/albums/${id}`);
+  },
+};
+
+export const lyrics = {
+  async get(title: string, artist: string): Promise<LyricsResponse> {
+    const searchParams = new URLSearchParams();
+    searchParams.set("title", title);
+    if (artist) searchParams.set("artist", artist);
+    return request(`/api/lyrics?${searchParams.toString()}`);
   },
 };

@@ -6,9 +6,14 @@ import { HomePage } from "./pages/Home.tsx";
 import { LoginPage } from "./pages/Login.tsx";
 import { RegisterPage } from "./pages/Register.tsx";
 import { LibraryPage } from "./pages/Library.tsx";
+import { ArtistsPage } from "./pages/Artists.tsx";
+import { ArtistDetailPage } from "./pages/ArtistDetail.tsx";
+import { AlbumsPage } from "./pages/Albums.tsx";
+import { AlbumDetailPage } from "./pages/AlbumDetail.tsx";
 import { PlaylistsPage } from "./pages/Playlists.tsx";
 import { PlaylistDetailPage } from "./pages/PlaylistDetail.tsx";
 import { SettingsPage } from "./pages/Settings.tsx";
+import { SongDetailPage } from "./pages/SongDetail.tsx";
 import { isApiConfigured, setApiBaseUrl } from "./config.ts";
 import { Button } from "./components/ui/Button.tsx";
 import { Input } from "./components/ui/Input.tsx";
@@ -114,6 +119,38 @@ function App() {
             }
           />
           <Route
+            path="/artists"
+            element={
+              <ProtectedRoute>
+                <ArtistsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/artists/:id"
+            element={
+              <ProtectedRoute>
+                <ArtistDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/albums"
+            element={
+              <ProtectedRoute>
+                <AlbumsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/albums/:id"
+            element={
+              <ProtectedRoute>
+                <AlbumDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/playlists"
             element={
               <ProtectedRoute>
@@ -126,6 +163,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <PlaylistDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/song/:id"
+            element={
+              <ProtectedRoute>
+                <SongDetailPage />
               </ProtectedRoute>
             }
           />
