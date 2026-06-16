@@ -80,12 +80,13 @@ export function SongDetailPage() {
   }, [lrcLines, currentTime]);
 
   useEffect(() => {
+    if (activeTab !== 'lyrics') return;
     if (activeLineIndex < 0 || !lyricsContainerRef.current) return;
     const lineEl = lineRefs.current[activeLineIndex];
     if (lineEl) {
-      lineEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      lineEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
-  }, [activeLineIndex]);
+  }, [activeLineIndex, activeTab]);
 
   const handleLyricClick = useCallback((time: number) => {
     if (audioElement) {
@@ -187,7 +188,7 @@ export function SongDetailPage() {
   }
 
   return (
-    <div className="min-h-screen relative">
+    <div className="h-screen overflow-hidden relative">
       {song.cover_image && (
         <div
           className="fixed inset-0 z-0"
@@ -201,7 +202,7 @@ export function SongDetailPage() {
         />
       )}
 
-      <div className="relative z-10 flex flex-col min-h-screen">
+      <div className="relative z-10 flex flex-col h-screen">
         <div className="flex items-center gap-3 p-4">
           <button
             onClick={() => window.history.back()}

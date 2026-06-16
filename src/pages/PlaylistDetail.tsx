@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { playlists as playlistsApi } from "../services/api.ts";
 import { usePlayerStore } from "../stores/playerStore.ts";
 import { Button } from "../components/ui/Button.tsx";
+import { Input } from "../components/ui/Input.tsx";
 import { formatDuration } from "../lib/utils.ts";
-import { ArrowLeft, Music, Pause, Play, Trash2 } from "lucide-react";
+import { ArrowLeft, Music, Pause, Play, Search, Trash2 } from "lucide-react";
 import type { Playlist as PlaylistType } from "../types/index.ts";
 
 import { API_BASE } from "../config";
@@ -13,6 +14,8 @@ export function PlaylistDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [playlist, setPlaylist] = useState<PlaylistType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
   const {
     setPlaylist: setStorePlaylist,
@@ -39,13 +42,13 @@ export function PlaylistDetailPage() {
     setIsPlaying(true);
   };
 
-  const handlePlaySong = (song: any, index: number) => {
+  const handlePlaySong = (song: any, originalIndex: number) => {
     if (!playlist?.songs) return;
     // If clicking the current song, toggle play/pause
     if (currentSong?.id === song.id) {
       togglePlay();
     } else {
-      setStorePlaylist(playlist.songs, index);
+      setStorePlaylist(playlist.songs, originalIndex);
       setIsPlaying(true);
     }
   };
@@ -63,6 +66,24 @@ export function PlaylistDetailPage() {
   useEffect(() => {
     fetchPlaylist();
   }, [id]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchInput);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  const filteredSongs = useMemo(() => {
+    if (!playlist?.songs) return [];
+    if (!debouncedSearch) return playlist.songs;
+    const query = debouncedSearch.toLowerCase();
+    return playlist.songs.filter((song) =>
+      song.title.toLowerCase().includes(query)
+      || song.artist.toLowerCase().includes(query)
+      || (song.album && song.album.toLowerCase().includes(query))
+    );
+  }, [playlist?.songs, debouncedSearch]);
 
   if (isLoading) {
     return <div className="container mx-auto p-6 text-center">加载中...</div>;
@@ -120,15 +141,44 @@ export function PlaylistDetailPage() {
       {playlist.songs && playlist.songs.length > 0
         ? (
           <>
+            {/* Search bar */}
+            <div className="mb-4">
+              <div className="relative max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="搜索歌曲、歌手、专辑..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              {debouncedSearch && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  找到 {filteredSongs.length} / {playlist.songs.length} 首歌曲
+                </p>
+              )}
+            </div>
+
+            {filteredSongs.length === 0
+              ? (
+                <div className="text-center py-12">
+                  <Search className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">未找到匹配的歌曲</p>
+                </div>
+              )
+              : (
+            <>
             {/* Mobile card view - shown on mobile only */}
             <div className="md:hidden space-y-2">
-              {playlist.songs.map((song, index) => (
+              {filteredSongs.map((song) => {
+                const originalIndex = playlist.songs!.findIndex((s) => s.id === song.id);
+                return (
                 <div
                   key={song.id}
                   className={`p-3 rounded-lg border backdrop-blur-md bg-background/60 border-white/10 cursor-pointer ${
                     currentSong?.id === song.id ? "bg-primary/30" : "hover:bg-white/50"
                   }`}
-                  onClick={() => handlePlaySong(song, index)}
+                  onClick={() => handlePlaySong(song, originalIndex)}
                 >
                   <div className="flex items-center gap-3">
                     {/* Play indicator / number */}
@@ -139,7 +189,7 @@ export function PlaylistDetailPage() {
                             ? <Pause className="h-5 w-5 fill-current" />
                             : <Play className="h-5 w-5 fill-current" />
                         )
-                        : <span className="text-sm text-muted-foreground">{index + 1}</span>}
+                        : <span className="text-sm text-muted-foreground">{originalIndex + 1}</span>}
                     </div>
 
                     {/* Song info */}
@@ -177,7 +227,8 @@ export function PlaylistDetailPage() {
                     </Button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Desktop table view - hidden on mobile */}
@@ -207,13 +258,15 @@ export function PlaylistDetailPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {playlist.songs.map((song, index) => (
+                  {filteredSongs.map((song) => {
+                    const originalIndex = playlist.songs!.findIndex((s) => s.id === song.id);
+                    return (
                     <tr
                       key={song.id}
                       className={`border-t border-white/10 hover:bg-white/10 cursor-pointer ${
                         currentSong?.id === song.id ? "bg-primary/20" : ""
                       }`}
-                      onClick={() => handlePlaySong(song, index)}
+                      onClick={() => handlePlaySong(song, originalIndex)}
                     >
                       <td className="px-3 py-2 sm:py-3 text-sm text-muted-foreground">
                         {currentSong?.id === song.id
@@ -223,7 +276,7 @@ export function PlaylistDetailPage() {
                               : <Play className="h-4 w-4 fill-current" />
                           )
                           : (
-                            index + 1
+                            originalIndex + 1
                           )}
                       </td>
                       <td className="px-3 py-2 sm:py-3 font-medium">{song.title}</td>
@@ -263,10 +316,13 @@ export function PlaylistDetailPage() {
                         </Button>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
+            </>
+              )}
           </>
         )
         : (
