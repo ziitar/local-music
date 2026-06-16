@@ -42,7 +42,7 @@ export function useAudioAnalyser(audioElement: HTMLAudioElement | null) {
     }
 
     const analyserNode = ctx.createAnalyser();
-    analyserNode.fftSize = 256;
+    analyserNode.fftSize = 512;
     analyserNode.smoothingTimeConstant = 0.8;
 
     globalSourceNode.connect(analyserNode);

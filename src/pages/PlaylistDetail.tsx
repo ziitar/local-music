@@ -37,18 +37,18 @@ export function PlaylistDetailPage() {
   };
 
   const handlePlayAll = () => {
-    if (!playlist?.songs) return;
-    setStorePlaylist(playlist.songs, 0);
+    if (!filteredSongs.length) return;
+    setStorePlaylist(filteredSongs, 0);
     setIsPlaying(true);
   };
 
-  const handlePlaySong = (song: any, originalIndex: number) => {
-    if (!playlist?.songs) return;
+  const handlePlaySong = (song: any, filteredIndex: number) => {
+    if (!filteredSongs.length) return;
     // If clicking the current song, toggle play/pause
     if (currentSong?.id === song.id) {
       togglePlay();
     } else {
-      setStorePlaylist(playlist.songs, originalIndex);
+      setStorePlaylist(filteredSongs, filteredIndex);
       setIsPlaying(true);
     }
   };
@@ -170,15 +170,14 @@ export function PlaylistDetailPage() {
             <>
             {/* Mobile card view - shown on mobile only */}
             <div className="md:hidden space-y-2">
-              {filteredSongs.map((song) => {
-                const originalIndex = playlist.songs!.findIndex((s) => s.id === song.id);
+              {filteredSongs.map((song, filteredIndex) => {
                 return (
                 <div
                   key={song.id}
                   className={`p-3 rounded-lg border backdrop-blur-md bg-background/60 border-white/10 cursor-pointer ${
                     currentSong?.id === song.id ? "bg-primary/30" : "hover:bg-white/50"
                   }`}
-                  onClick={() => handlePlaySong(song, originalIndex)}
+                  onClick={() => handlePlaySong(song, filteredIndex)}
                 >
                   <div className="flex items-center gap-3">
                     {/* Play indicator / number */}
@@ -189,7 +188,7 @@ export function PlaylistDetailPage() {
                             ? <Pause className="h-5 w-5 fill-current" />
                             : <Play className="h-5 w-5 fill-current" />
                         )
-                        : <span className="text-sm text-muted-foreground">{originalIndex + 1}</span>}
+                        : <span className="text-sm text-muted-foreground">{filteredIndex + 1}</span>}
                     </div>
 
                     {/* Song info */}
@@ -258,15 +257,14 @@ export function PlaylistDetailPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredSongs.map((song) => {
-                    const originalIndex = playlist.songs!.findIndex((s) => s.id === song.id);
+                  {filteredSongs.map((song, filteredIndex) => {
                     return (
                     <tr
                       key={song.id}
                       className={`border-t border-white/10 hover:bg-white/10 cursor-pointer ${
                         currentSong?.id === song.id ? "bg-primary/20" : ""
                       }`}
-                      onClick={() => handlePlaySong(song, originalIndex)}
+                      onClick={() => handlePlaySong(song, filteredIndex)}
                     >
                       <td className="px-3 py-2 sm:py-3 text-sm text-muted-foreground">
                         {currentSong?.id === song.id
@@ -276,7 +274,7 @@ export function PlaylistDetailPage() {
                               : <Play className="h-4 w-4 fill-current" />
                           )
                           : (
-                            originalIndex + 1
+                            filteredIndex + 1
                           )}
                       </td>
                       <td className="px-3 py-2 sm:py-3 font-medium">{song.title}</td>

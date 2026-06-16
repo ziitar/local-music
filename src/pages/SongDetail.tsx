@@ -4,6 +4,7 @@ import { songs as songsApi, lyrics as lyricsApi } from "../services/api.ts";
 import { usePlayerStore } from "../stores/playerStore.ts";
 import { parseLrc, findActiveLine } from "../lib/lrcParser.ts";
 import { useAudioAnalyser } from "../lib/useAudioAnalyser.ts";
+import { createVisualizerState, drawSciFiVisualizer } from "../lib/visualizer.ts";
 import { ArrowLeft, Music } from "lucide-react";
 import type { Song } from "../types/index.ts";
 import type { LrcLine } from "../lib/lrcParser.ts";
@@ -26,6 +27,7 @@ export function SongDetailPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('lyrics');
 
   const {
+    currentSong,
     currentTime,
     audioElement,
     setCurrentTime,
@@ -36,10 +38,12 @@ export function SongDetailPage() {
   const animationRef = useRef<number>(0);
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
   const lineRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const visualizerStateRef = useRef(createVisualizerState());
 
   const touchStartRef = useRef<number>(0);
   const touchStartYRef = useRef<number>(0);
 
+  // Fetch initial song from URL param
   useEffect(() => {
     const fetchSong = async () => {
       if (!id) return;
@@ -53,6 +57,13 @@ export function SongDetailPage() {
     };
     fetchSong();
   }, [id]);
+
+  // Sync with player's currentSong when it changes (auto next/prev)
+  useEffect(() => {
+    if (currentSong) {
+      setSong(currentSong);
+    }
+  }, [currentSong?.id]);
 
   useEffect(() => {
     const fetchLyrics = async () => {
@@ -121,38 +132,16 @@ export function SongDetailPage() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const bufferLength = analyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
+    const frequencyData = new Uint8Array(analyser.frequencyBinCount);
+    const waveformData = new Uint8Array(analyser.fftSize);
 
     const draw = () => {
       animationRef.current = requestAnimationFrame(draw);
-      const width = canvas.width;
-      const height = canvas.height;
 
-      analyser.getByteFrequencyData(dataArray);
-      ctx.clearRect(0, 0, width, height);
+      analyser.getByteFrequencyData(frequencyData);
+      analyser.getByteTimeDomainData(waveformData);
 
-      const barCount = Math.min(bufferLength, 64);
-      const barWidth = width / barCount;
-      const gap = 2;
-
-      for (let i = 0; i < barCount; i++) {
-        const barHeight = (dataArray[i] / 255) * height * 0.85;
-        const x = i * barWidth;
-        const y = height - barHeight;
-
-        const hue = 220 + (i / barCount) * 40;
-        const lightness = 50 + (dataArray[i] / 255) * 20;
-
-        ctx.fillStyle = `hsl(${hue}, 80%, ${lightness}%)`;
-        ctx.fillRect(x + gap / 2, y, barWidth - gap, barHeight);
-
-        const gradient = ctx.createLinearGradient(x, y, x, y + 10);
-        gradient.addColorStop(0, `hsla(${hue}, 90%, 70%, 0.6)`);
-        gradient.addColorStop(1, 'transparent');
-        ctx.fillStyle = gradient;
-        ctx.fillRect(x + gap / 2, y, barWidth - gap, 10);
-      }
+      drawSciFiVisualizer(ctx, canvas, frequencyData, waveformData, visualizerStateRef.current);
     };
 
     draw();
@@ -189,28 +178,15 @@ export function SongDetailPage() {
 
   return (
     <div className="h-screen overflow-hidden relative">
-      {song.cover_image && (
-        <div
-          className="fixed inset-0 z-0"
-          style={{
-            backgroundImage: `url(${API_BASE + song.cover_image})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            filter: 'blur(60px) brightness(0.3)',
-            transform: 'scale(1.2)',
-          }}
-        />
-      )}
-
-      <div className="relative z-10 flex flex-col h-screen">
+      <div className="relative z-10 flex flex-col h-full">
         <div className="flex items-center gap-3 p-4">
           <button
             onClick={() => window.history.back()}
-            className="p-2 rounded-full hover:bg-white/10 transition-colors"
+            className="p-2 rounded-full hover:bg-white/10 transition-colors text-foreground"
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <h1 className="text-lg font-semibold truncate flex-1">{song.title}</h1>
+          <h1 className="text-lg font-semibold truncate flex-1 text-foreground">{song.title}</h1>
         </div>
 
         <div className="flex flex-col items-center px-6 py-4">
@@ -228,7 +204,7 @@ export function SongDetailPage() {
               )}
           </div>
 
-          <h2 className="text-xl sm:text-2xl font-bold text-center">{song.title}</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-center text-foreground">{song.title}</h2>
           <p className="text-sm text-muted-foreground text-center mt-1">{song.artist}</p>
           {song.album && song.album !== 'Unknown Album' && (
             <p className="text-xs text-muted-foreground text-center mt-1">{song.album}</p>
@@ -263,14 +239,8 @@ export function SongDetailPage() {
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         >
-          <div
-            className="flex transition-transform duration-300 ease-in-out h-full"
-            style={{
-              transform: activeTab === 'visualizer' ? 'translateX(-50%)' : 'translateX(0)',
-              width: '200%',
-            }}
-          >
-            <div className="w-1/2 h-full overflow-y-auto" ref={lyricsContainerRef}>
+          {activeTab === 'lyrics' ? (
+            <div className="h-full overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" ref={lyricsContainerRef}>
               {isLyricsLoading
                 ? (
                   <div className="flex items-center justify-center h-full">
@@ -287,8 +257,6 @@ export function SongDetailPage() {
                         className={`cursor-pointer px-4 py-1 rounded transition-all duration-300 text-center ${
                           index === activeLineIndex
                             ? 'text-primary text-lg font-semibold scale-105'
-                            : index < activeLineIndex
-                            ? 'text-muted-foreground/60 text-base'
                             : 'text-muted-foreground text-base'
                         }`}
                         onClick={() => handleLyricClick(line.time)}
@@ -304,8 +272,8 @@ export function SongDetailPage() {
                   </div>
                 )}
             </div>
-
-            <div className="w-1/2 h-full flex items-center justify-center">
+          ) : (
+            <div className="h-full flex items-center justify-center">
               {analyser
                 ? (
                   <canvas ref={canvasRef} className="w-full h-full" />
@@ -316,7 +284,7 @@ export function SongDetailPage() {
                   </div>
                 )}
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

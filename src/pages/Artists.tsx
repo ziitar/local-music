@@ -94,20 +94,20 @@ export function ArtistsPage() {
               ))}
             </div>
 
-            <div className="hidden md:grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="hidden md:grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 sm:gap-4">
               {artists.map((artist) => (
                 <Link key={artist.id} to={`/artists/${artist.id}`}>
                   <Card className="hover:shadow-lg transition-shadow cursor-pointer backdrop-blur-sm bg-background/50 h-full">
-                    <CardHeader className="p-3 sm:p-4">
-                      <div className="aspect-square bg-muted rounded-full flex items-center justify-center mb-2 sm:mb-3">
-                        <Users className="h-8 w-8 sm:h-12 sm:w-12 text-muted-foreground" />
+                    <CardHeader className="p-2 sm:p-3 text-center">
+                      <div className="aspect-square w-16 h-16 sm:w-20 sm:h-20 mx-auto bg-muted rounded-full flex items-center justify-center mb-2">
+                        <Users className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
                       </div>
-                      <CardTitle className="text-base sm:text-lg truncate">{artist.name}</CardTitle>
+                      <CardTitle className="text-sm sm:text-base truncate">{artist.name}</CardTitle>
                       {artist.alias && (
                         <p className="text-xs text-muted-foreground truncate">{artist.alias}</p>
                       )}
-                      <p className="text-xs sm:text-sm text-muted-foreground">
-                        {artist.album_count || 0} 张专辑 · {artist.song_count || 0} 首歌曲
+                      <p className="text-xs text-muted-foreground">
+                        {artist.song_count || 0} 首
                       </p>
                     </CardHeader>
                   </Card>
