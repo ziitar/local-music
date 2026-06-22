@@ -29,7 +29,17 @@
       "Bash(git commit *)",
       "Bash(git config *)",
       "Bash(git pull *)",
-      "Bash(git checkout *)"
+      "Bash(git checkout *)",
+      "Bash(git push *)",
+      "Bash(gh api *)",
+      "Bash(npx tsc *)",
+      "Bash(git *)",
+      "Bash(npm run *)",
+      "Bash(npx eslint *)",
+      "Bash(DOCKER_BUILDKIT=0 docker compose up *)",
+      "Bash(deno --version)",
+      "Bash(npm --version)",
+      "Bash(docker cp *)"
     ]
   }
 }
