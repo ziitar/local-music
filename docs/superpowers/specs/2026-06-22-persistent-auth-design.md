@@ -205,8 +205,9 @@ async function requestWithRefresh<T>(endpoint, options): Promise<T> {
 }
 
 async function tryRefreshToken(): Promise<boolean> {
-  // POST /api/auth/refresh { refreshToken }
-  // On success: update both tokens in storage
+  // Web: POST /api/auth/refresh (no body — browser sends httpOnly cookie)
+  // Native: POST /api/auth/refresh { refreshToken } from Preferences
+  // On success: store new accessToken (Web/Native) + new refreshToken (Native only)
   // On failure: clear all tokens, return false
 }
 ```
@@ -216,9 +217,9 @@ async function tryRefreshToken(): Promise<boolean> {
 ```typescript
 const storage = createTokenStorage();
 
-// login: store refreshToken after successful login
-// logout: notify backend to revoke, then clear local storage
-// checkAuth: try accessToken first, fall back to refreshToken
+// login: store accessToken (Web/Native). refreshToken handled by backend cookie (Web) / Preferences (Native)
+// logout: notify backend to revoke, clear local tokens
+// checkAuth: try accessToken first, fall back to refresh (cookie on Web, Preferences on Native)
 
 // Optional: auto-refresh timer
 // Every 1.5h, refresh accessToken before 2h expiry
@@ -227,19 +228,22 @@ const storage = createTokenStorage();
 
 ### `login` flow:
 1. Call `authApi.login(username, password)`
-2. On success, store accessToken and refreshToken via storage
+2. On success:
+   - Web: store accessToken in localStorage. refreshToken is set by backend as httpOnly cookie (invisible to JS)
+   - Native: store both accessToken and refreshToken in Preferences
 3. Update auth state
 
 ### `logout` flow:
-1. Get refreshToken from storage
-2. Call `authApi.logout(refreshToken)` — non-blocking, fire and forget
-3. Clear both tokens from storage
-4. Reset auth state
+1. Web: call `POST /api/auth/logout` (backend clears httpOnly cookie). Clear accessToken from localStorage.
+   Native: call `POST /api/auth/logout` with refreshToken from Preferences. Clear both tokens from Preferences.
+2. Reset auth state
 
 ### `checkAuth` flow (app startup):
 1. If accessToken exists → try `GET /api/auth/me`
-2. If accessToken invalid but refreshToken exists → call `tryRefreshToken()`
-3. If refresh succeeds → retry `GET /api/auth/me`
+2. If accessToken invalid:
+   - Web: call `POST /api/auth/refresh` (browser sends httpOnly cookie automatically)
+   - Native: call `POST /api/auth/refresh` with refreshToken from Preferences
+3. If refresh succeeds → store new accessToken, retry `GET /api/auth/me`
 4. If all fails → clear state, redirect to login
 
 ## Dependency Changes
