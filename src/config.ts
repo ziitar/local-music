@@ -10,7 +10,7 @@
 const STORAGE_KEY = 'api_base_url';
 
 /** Check if running on a Capacitor native platform. */
-function isNativePlatform(): boolean {
+export function isNativePlatform(): boolean {
   // Capacitor sets window.Capacitor when running natively
   const cap = (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor;
   return typeof cap?.isNativePlatform === 'function' && cap.isNativePlatform();

@@ -13,25 +13,80 @@ import type {
   User,
 } from "../types";
 
-import { API_BASE } from "../config";
+import { API_BASE, isNativePlatform } from "../config";
+import { tokenStorage } from "../lib/storage.ts";
 
-function getToken(): string | null {
-  return localStorage.getItem("token");
+let isRefreshing = false;
+let refreshPromise: Promise<boolean> | null = null;
+
+async function getToken(): Promise<string | null> {
+  return tokenStorage.getAccessToken();
 }
 
-function setToken(token: string): void {
-  localStorage.setItem("token", token);
+async function setToken(token: string): Promise<void> {
+  return tokenStorage.setAccessToken(token);
 }
 
-function removeToken(): void {
-  localStorage.removeItem("token");
+async function removeToken(): Promise<void> {
+  return tokenStorage.removeAccessToken();
+}
+
+async function tryRefreshToken(): Promise<boolean> {
+  if (isRefreshing && refreshPromise) {
+    return refreshPromise;
+  }
+
+  isRefreshing = true;
+  refreshPromise = (async () => {
+    try {
+      const headers: HeadersInit = { "Content-Type": "application/json" };
+
+      if (isNativePlatform()) {
+        const refreshToken = await tokenStorage.getRefreshToken();
+        if (!refreshToken) return false;
+
+        const response = await fetch(`${API_BASE}/api/auth/refresh`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ refreshToken }),
+        });
+
+        if (!response.ok) return false;
+
+        const data = await response.json();
+        await setToken(data.token);
+        await tokenStorage.setRefreshToken(data.refreshToken);
+        return true;
+      }
+
+      // Web: browser sends httpOnly cookie automatically
+      const response = await fetch(`${API_BASE}/api/auth/refresh`, {
+        method: "POST",
+        headers,
+        credentials: "same-origin",
+      });
+
+      if (!response.ok) return false;
+
+      const data = await response.json();
+      await setToken(data.token);
+      return true;
+    } catch {
+      return false;
+    } finally {
+      isRefreshing = false;
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
 }
 
 async function request<T>(
   endpoint: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const token = getToken();
+  const token = await getToken();
   const headers: HeadersInit = {
     "Content-Type": "application/json",
     ...options.headers,
@@ -40,11 +95,32 @@ async function request<T>(
   if (token) {
     (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
   }
+  if (isNativePlatform()) {
+    (headers as Record<string, string>)["X-Platform"] = "native";
+  }
 
-  const response = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    headers,
-  });
+  const fetchOptions: RequestInit = { ...options, headers };
+  if (!isNativePlatform()) {
+    fetchOptions.credentials = "same-origin";
+  }
+
+  let response = await fetch(`${API_BASE}${endpoint}`, fetchOptions);
+
+  // If 401, try to refresh and retry
+  if (response.status === 401) {
+    const refreshed = await tryRefreshToken();
+    if (refreshed) {
+      const newToken = await getToken();
+      if (newToken) {
+        (headers as Record<string, string>)["Authorization"] = `Bearer ${newToken}`;
+      }
+      response = await fetch(`${API_BASE}${endpoint}`, {
+        ...options,
+        headers,
+        ...(!isNativePlatform() ? { credentials: "same-origin" } : {}),
+      });
+    }
+  }
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({
@@ -64,7 +140,10 @@ export const auth = {
     });
 
     if (result.token) {
-      setToken(result.token);
+      await setToken(result.token);
+    }
+    if (result.refreshToken) {
+      await tokenStorage.setRefreshToken(result.refreshToken);
     }
 
     return result;
@@ -77,7 +156,10 @@ export const auth = {
     });
 
     if (result.token) {
-      setToken(result.token);
+      await setToken(result.token);
+    }
+    if (result.refreshToken) {
+      await tokenStorage.setRefreshToken(result.refreshToken);
     }
 
     return result;
@@ -87,12 +169,45 @@ export const auth = {
     return request<User>("/api/auth/me");
   },
 
-  logout(): void {
-    removeToken();
+  async changePassword(
+    oldPassword: string,
+    newPassword: string,
+  ): Promise<{ success: boolean; message: string }> {
+    return request("/api/auth/password", {
+      method: "PUT",
+      body: JSON.stringify({ oldPassword, newPassword }),
+    });
   },
 
-  isAuthenticated(): boolean {
-    return !!getToken();
+  async logout(): Promise<void> {
+    try {
+      if (isNativePlatform()) {
+        const refreshToken = await tokenStorage.getRefreshToken();
+        if (refreshToken) {
+          await fetch(`${API_BASE}/api/auth/logout`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ refreshToken }),
+          });
+        }
+      } else {
+        await fetch(`${API_BASE}/api/auth/logout`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+        });
+      }
+    } catch {
+      // Ignore logout API errors — still clear local state
+    }
+
+    await removeToken();
+    await tokenStorage.removeRefreshToken();
+  },
+
+  async isAuthenticated(): Promise<boolean> {
+    const token = await getToken();
+    return !!token;
   },
 };
 

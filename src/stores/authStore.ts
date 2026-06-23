@@ -16,7 +16,11 @@ interface AuthState {
     username: string,
     password: string,
   ) => Promise<{ success: boolean; message: string }>;
-  logout: () => void;
+  changePassword: (
+    oldPassword: string,
+    newPassword: string,
+  ) => Promise<{ success: boolean; message: string }>;
+  logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
 }
 
@@ -60,18 +64,24 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
-  logout: () => {
-    authApi.logout();
+  changePassword: async (oldPassword, newPassword) => {
+    try {
+      const result = await authApi.changePassword(oldPassword, newPassword);
+      return result;
+    } catch (error) {
+      return { success: false, message: (error as Error).message };
+    }
+  },
+
+  logout: async () => {
+    await authApi.logout();
     set({ user: null, isAuthenticated: false, isAdmin: false });
   },
 
   checkAuth: async () => {
-    if (!authApi.isAuthenticated()) {
-      set({ isLoading: false, isAuthenticated: false, isAdmin: false });
-      return;
-    }
-
     try {
+      // api.ts handles auto-refresh transparently
+      // me() succeeds if access token is valid OR refresh succeeds
       const user = await authApi.me();
       set({
         user,
@@ -80,7 +90,8 @@ export const useAuthStore = create<AuthState>((set) => ({
         isAdmin: user.role === 'admin',
       });
     } catch {
-      authApi.logout();
+      // Both access token and refresh failed
+      await authApi.logout();
       set({ user: null, isAuthenticated: false, isLoading: false, isAdmin: false });
     }
   },
