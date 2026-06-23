@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { useAuthStore } from "../../stores/authStore.ts";
 import { Button } from "../ui/Button.tsx";
-import { Home, Library, ListMusic, LogOut, Settings, User, Users, Disc, X } from "lucide-react";
+import { Home, Library, ListMusic, Settings, Users, Disc, X } from "lucide-react";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -11,7 +11,7 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, isMobile: _isMobile, onLinkClick }: SidebarProps) {
   const location = useLocation();
-  const { user, logout, isAdmin } = useAuthStore();
+  const { user, isAdmin } = useAuthStore();
 
   const navItems = [
     { path: "/", icon: Home, label: "首页" },
@@ -77,27 +77,6 @@ export function Sidebar({ isOpen, isMobile: _isMobile, onLinkClick }: SidebarPro
           </ul>
         </nav>
 
-        <div className="p-4 border-t border-white/10">
-          {user
-            ? (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  <span className="text-sm">{user.username}</span>
-                </div>
-                <Button variant="ghost" size="icon" onClick={logout}>
-                  <LogOut className="h-4 w-4" />
-                </Button>
-              </div>
-            )
-            : (
-              <Link to="/login">
-                <Button variant="outline" className="w-full">
-                  登录
-                </Button>
-              </Link>
-            )}
-        </div>
       </aside>
 
       {/* Mobile sidebar - drawer style */}
@@ -158,27 +137,6 @@ export function Sidebar({ isOpen, isMobile: _isMobile, onLinkClick }: SidebarPro
           </ul>
         </nav>
 
-        <div className="p-4 border-t border-white/10">
-          {user
-            ? (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  <span className="text-sm">{user.username}</span>
-                </div>
-                <Button variant="ghost" size="icon" onClick={logout}>
-                  <LogOut className="h-4 w-4" />
-                </Button>
-              </div>
-            )
-            : (
-              <Link to="/login" onClick={onLinkClick}>
-                <Button variant="outline" className="w-full">
-                  登录
-                </Button>
-              </Link>
-            )}
-        </div>
       </aside>
     </>
   );

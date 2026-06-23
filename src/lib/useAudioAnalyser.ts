@@ -41,11 +41,16 @@ export function useAudioAnalyser(audioElement: HTMLAudioElement | null) {
       globalAudioElementRef = audioElement;
     }
 
+    // Use a GainNode to normalize volume through Web Audio API path
+    const gainNode = ctx.createGain();
+    gainNode.gain.value = 1.0;
+
     const analyserNode = ctx.createAnalyser();
     analyserNode.fftSize = 512;
     analyserNode.smoothingTimeConstant = 0.8;
 
-    globalSourceNode.connect(analyserNode);
+    globalSourceNode.connect(gainNode);
+    gainNode.connect(analyserNode);
     analyserNode.connect(ctx.destination);
 
     analyserRef.current = analyserNode;
@@ -54,9 +59,10 @@ export function useAudioAnalyser(audioElement: HTMLAudioElement | null) {
     return () => {
       try {
         analyserNode.disconnect();
+        gainNode.disconnect();
         if (globalSourceNode) {
+          globalSourceNode.disconnect(gainNode);
           globalSourceNode.disconnect(analyserNode);
-          globalSourceNode.connect(ctx.destination);
         }
       } catch {
         // ignore cleanup errors

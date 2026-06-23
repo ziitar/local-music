@@ -73,10 +73,10 @@ export function ArtistsPage() {
         )
         : (
           <>
-            <div className="md:hidden space-y-2">
+            <div className="md:hidden">
               {artists.map((artist) => (
                 <Link key={artist.id} to={`/artists/${artist.id}`}>
-                  <div className="flex items-center gap-3 p-3 rounded-lg border backdrop-blur-md bg-background/60 border-white/10 hover:bg-white/50 cursor-pointer">
+                  <div className="flex items-center gap-3 p-3 rounded-lg border backdrop-blur-md bg-background/60 border-white/10 hover:bg-white/50 cursor-pointer space-y-2">
                     <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center flex-shrink-0">
                       <Users className="h-6 w-6 text-muted-foreground" />
                     </div>

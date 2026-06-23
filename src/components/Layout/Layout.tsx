@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Outlet } from "react-router-dom";
 import { Sidebar } from "./Sidebar.tsx";
 import { PlayerBar } from "../Player/PlayerBar.tsx";
 import { usePlayerStore } from "../../stores/playerStore.ts";
 import { useAuthStore } from "../../stores/authStore.ts";
-import { Menu, LogOut, User } from "lucide-react";
+import { ChangePasswordModal } from "../ChangePasswordModal.tsx";
+import { Menu, LogOut, User, ChevronDown, Lock } from "lucide-react";
 import { Button } from "../ui/Button.tsx";
 import { API_BASE } from "../../config";
 
@@ -13,6 +14,9 @@ export function Layout() {
   const { user, logout, isAdmin } = useAuthStore();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Check if we're on mobile
   useEffect(() => {
@@ -34,6 +38,19 @@ export function Layout() {
       setIsSidebarOpen(false);
     }
   }, [isMobile]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    if (isDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isDropdownOpen]);
 
   const handleLinkClick = () => {
     if (isMobile) {
@@ -78,7 +95,7 @@ export function Layout() {
         )}
 
         <Sidebar isOpen={isSidebarOpen} isMobile={isMobile} onLinkClick={handleLinkClick} />
-        <main className={`flex-1 overflow-auto pb-20 md:pt-14 ${isMobile ? "pt-14" : ""}`}>
+        <main className={`flex-1 overflow-y-auto no-scrollbar pb-20 md:pt-14 ${isMobile ? "pt-14" : ""}`}>
           {/* User info - visible at top right on both mobile and desktop */}
           {user && (
             <div className={`absolute top-3 right-4 z-20 flex items-center gap-3 ${isMobile ? "left-14" : ""}`}>
@@ -87,12 +104,39 @@ export function Layout() {
                   Admin
                 </span>
               )}
-              <div className="flex items-center gap-2 bg-background/60 backdrop-blur-sm px-3 py-1.5 rounded-md border border-white/10">
-                <User className="h-4 w-4" />
-                <span className="text-sm">{user.username}</span>
-                <Button variant="ghost" size="icon" onClick={logout} className="h-7 w-7">
-                  <LogOut className="h-3.5 w-3.5" />
-                </Button>
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="flex items-center gap-2 bg-background/60 backdrop-blur-sm px-3 py-1.5 rounded-md border border-white/10 hover:bg-background/80 transition-colors cursor-pointer"
+                >
+                  <User className="h-4 w-4" />
+                  <span className="text-sm">{user.username}</span>
+                  <ChevronDown className={`h-3 w-3 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`} />
+                </button>
+                {isDropdownOpen && (
+                  <div className="absolute right-0 top-full mt-1 w-40 bg-background/95 backdrop-blur-xl border border-white/10 rounded-md shadow-lg overflow-hidden">
+                    <button
+                      onClick={() => {
+                        setIsDropdownOpen(false);
+                        setIsPasswordModalOpen(true);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-white/10 transition-colors text-left"
+                    >
+                      <Lock className="h-4 w-4" />
+                      修改密码
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsDropdownOpen(false);
+                        logout();
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-white/10 transition-colors text-left text-red-400"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      退出登录
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -102,6 +146,10 @@ export function Layout() {
         </main>
         <PlayerBar />
       </div>
+      <ChangePasswordModal
+        isOpen={isPasswordModalOpen}
+        onClose={() => setIsPasswordModalOpen(false)}
+      />
     </div>
   );
 }

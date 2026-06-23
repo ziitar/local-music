@@ -39,7 +39,8 @@
       "Bash(DOCKER_BUILDKIT=0 docker compose up *)",
       "Bash(deno --version)",
       "Bash(npm --version)",
-      "Bash(docker cp *)"
+      "Bash(docker cp *)",
+      "Bash(ECC_GATEGUARD=off ls *)"
     ]
   }
 }

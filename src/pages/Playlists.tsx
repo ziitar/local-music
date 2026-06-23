@@ -84,10 +84,10 @@ export function PlaylistsPage() {
         : (
           <>
             {/* Mobile list view - shown on mobile only */}
-            <div className="md:hidden space-y-2">
+            <div className="md:hidden">
               {playlists.map((playlist) => (
                 <Link key={playlist.id} to={`/playlist/${playlist.id}`}>
-                  <div className="flex items-center gap-3 p-3 rounded-lg border backdrop-blur-md bg-background/60 border-white/10 hover:bg-white/50 cursor-pointer">
+                  <div className="flex items-center gap-3 p-3 rounded-lg border backdrop-blur-md bg-background/60 border-white/10 hover:bg-white/50 cursor-pointer space-y-2">
                     <div className="w-14 h-14 bg-muted rounded-md flex items-center justify-center flex-shrink-0 overflow-hidden">
                       {playlist.cover_image
                         ? (

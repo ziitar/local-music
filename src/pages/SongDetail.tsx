@@ -169,15 +169,15 @@ export function SongDetailPage() {
   }, [activeTab]);
 
   if (isLoading) {
-    return <div className="min-h-screen flex items-center justify-center">加载中...</div>;
+    return <div className="h-full flex items-center justify-center">加载中...</div>;
   }
 
   if (!song) {
-    return <div className="min-h-screen flex items-center justify-center">歌曲不存在</div>;
+    return <div className="h-full flex items-center justify-center">歌曲不存在</div>;
   }
 
   return (
-    <div className="h-screen overflow-hidden relative">
+    <div className="h-full overflow-hidden relative">
       <div className="relative z-10 flex flex-col h-full">
         <div className="flex items-center gap-3 p-4">
           <button
@@ -190,7 +190,7 @@ export function SongDetailPage() {
         </div>
 
         <div className="flex flex-col items-center px-6 py-4">
-          <div className="w-48 h-48 sm:w-64 sm:h-64 bg-muted rounded-lg flex items-center justify-center overflow-hidden shadow-2xl mb-4">
+          <div className="w-36 h-36 sm:w-48 sm:h-48 bg-muted rounded-lg flex items-center justify-center overflow-hidden shadow-2xl mb-4">
             {song.cover_image
               ? (
                 <img

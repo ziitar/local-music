@@ -107,7 +107,19 @@ deno task serve
 ```bash
 # Start PostgreSQL container
 docker-compose up -d postgres
+
+# Execute a migration script
+docker compose exec postgres psql -U ziitar -d localmusic -f /docker-entrypoint-initdb.d/migrations/XXX_migration_name.sql
 ```
+
+### Database Migration Rules
+
+**涉及数据库变动时，必须遵循以下流程：**
+
+1. 将变动 SQL 写入 `dbs/migrations/XXX_migration_name.sql`（编号递增，描述性命名）
+2. 脚本内使用 `CREATE TABLE IF NOT EXISTS`、`ALTER TABLE ... ADD COLUMN IF NOT EXISTS` 等幂等语句
+3. **不要自动执行迁移** — 通知用户手动在 Docker 中执行，等待用户确认完成后再继续
+4. 同步更新 `dbs/schema.sql` 保持完整 schema 一致
 
 ## Key Files
 
