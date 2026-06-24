@@ -453,7 +453,7 @@ export function drawSciFiVisualizer(
   ctx: CanvasRenderingContext2D,
   canvas: HTMLCanvasElement,
   frequencyData: Uint8Array,
-  waveformData: Uint8Array,
+  _waveformData: Uint8Array,
   state: VisualizerState,
 ): void {
   const width = canvas.width;

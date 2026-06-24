@@ -79,17 +79,20 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   checkAuth: async () => {
+    console.log('[LocalMusic] checkAuth started');
     try {
       // api.ts handles auto-refresh transparently
       // me() succeeds if access token is valid OR refresh succeeds
       const user = await authApi.me();
+      console.log('[LocalMusic] checkAuth success, user:', user);
       set({
         user,
         isAuthenticated: true,
         isLoading: false,
         isAdmin: user.role === 'admin',
       });
-    } catch {
+    } catch (error) {
+      console.log('[LocalMusic] checkAuth failed:', error);
       // Both access token and refresh failed — clear state and show login.
       // Wrap logout() so a storage/plugin failure here can't leave
       // isLoading stuck at true (which causes a blank screen on Android).

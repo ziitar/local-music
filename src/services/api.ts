@@ -86,7 +86,10 @@ async function request<T>(
   endpoint: string,
   options: RequestInit = {},
 ): Promise<T> {
+  console.log('[LocalMusic] request() called for:', endpoint);
   const token = await getToken();
+  console.log('[LocalMusic] getToken result:', token ? 'has token' : 'no token');
+
   const headers: HeadersInit = {
     "Content-Type": "application/json",
     ...options.headers,
@@ -104,7 +107,10 @@ async function request<T>(
     fetchOptions.credentials = "same-origin";
   }
 
-  let response = await fetch(`${API_BASE}${endpoint}`, fetchOptions);
+  const url = `${API_BASE}${endpoint}`;
+  console.log('[LocalMusic] Fetching URL:', url);
+  let response = await fetch(url, fetchOptions);
+  console.log('[LocalMusic] Response status:', response.status);
 
   // If 401, try to refresh and retry
   if (response.status === 401) {

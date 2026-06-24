@@ -25,6 +25,9 @@ dist-ssr
 public/covers/*
 .env
 
+# Deno
+deno.lock
+
 # Android build artifacts
 android/app/build
 android/.gradle

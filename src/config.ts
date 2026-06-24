@@ -44,10 +44,14 @@ export const API_BASE = resolveApiBase();
 /** Save a new API base URL to localStorage and reload the app. */
 export function setApiBaseUrl(url: string): void {
   const normalized = url.replace(/\/+$/, '');
+  console.log('[LocalMusic] Setting API base URL:', normalized);
   localStorage.setItem(STORAGE_KEY, normalized);
-  // Use location.href assignment instead of reload() for better Capacitor
-  // Android compatibility — reload() can lose the Capacitor bridge.
-  window.location.href = window.location.href.split('#')[0];
+
+  // On Capacitor Android, use location.href assignment instead of reload()
+  // for better compatibility — reload() can lose the Capacitor bridge.
+  const currentUrl = window.location.href.split('#')[0];
+  console.log('[LocalMusic] Reloading to:', currentUrl);
+  window.location.href = currentUrl;
 }
 
 /** Remove the stored API base URL and reload. */
