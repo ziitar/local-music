@@ -45,13 +45,15 @@ export const API_BASE = resolveApiBase();
 export function setApiBaseUrl(url: string): void {
   const normalized = url.replace(/\/+$/, '');
   localStorage.setItem(STORAGE_KEY, normalized);
-  window.location.reload();
+  // Use location.href assignment instead of reload() for better Capacitor
+  // Android compatibility — reload() can lose the Capacitor bridge.
+  window.location.href = window.location.href.split('#')[0];
 }
 
 /** Remove the stored API base URL and reload. */
 export function clearApiBaseUrl(): void {
   localStorage.removeItem(STORAGE_KEY);
-  window.location.reload();
+  window.location.href = window.location.href.split('#')[0];
 }
 
 /** Returns true if an API base URL is available. */

@@ -90,8 +90,14 @@ export const useAuthStore = create<AuthState>((set) => ({
         isAdmin: user.role === 'admin',
       });
     } catch {
-      // Both access token and refresh failed
-      await authApi.logout();
+      // Both access token and refresh failed — clear state and show login.
+      // Wrap logout() so a storage/plugin failure here can't leave
+      // isLoading stuck at true (which causes a blank screen on Android).
+      try {
+        await authApi.logout();
+      } catch {
+        // Ignore — we're already in the error path
+      }
       set({ user: null, isAuthenticated: false, isLoading: false, isAdmin: false });
     }
   },
