@@ -254,6 +254,17 @@ export const songs = {
     return `${API_BASE}/api/songs/${id}/stream${query ? `?${query}` : ""}`;
   },
 
+  async stopStream(songId: number): Promise<void> {
+    try {
+      await request("/api/songs/stop-stream", {
+        method: "POST",
+        body: JSON.stringify({ songId }),
+      });
+    } catch {
+      // 忽略错误，best-effort 清理
+    }
+  },
+
   async delete(id: number): Promise<{ message: string }> {
     return request(`/api/songs/${id}`, { method: "DELETE" });
   },

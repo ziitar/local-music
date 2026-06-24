@@ -1,6 +1,10 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Song } from "../types/index.ts";
+import { songs as songsApi } from "../services/api.ts";
+
+// 追踪当前正在流式播放的歌曲 ID，用于在切歌/暂停时通知后端停止 ffmpeg
+let currentStreamSongId: number | null = null;
 
 export type PlayMode = "sequential" | "random" | "repeat-one" | "repeat-all";
 
@@ -61,13 +65,27 @@ export const usePlayerStore = create<PlayerState>()(
       playMode: "sequential",
       selectedBitrate: "",
 
-      setCurrentSong: (song) => set({ currentSong: song }),
-      setPlaylist: (songs, startIndex = 0) =>
+      setCurrentSong: (song) => {
+        // 通知后端停止旧歌的 ffmpeg 进程
+        if (currentStreamSongId != null) {
+          songsApi.stopStream(currentStreamSongId);
+        }
+        currentStreamSongId = song?.id ?? null;
+        set({ currentSong: song });
+      },
+      setPlaylist: (songs, startIndex = 0) => {
+        // 通知后端停止旧歌的 ffmpeg 进程
+        if (currentStreamSongId != null) {
+          songsApi.stopStream(currentStreamSongId);
+        }
+        const newSong = songs[startIndex] || null;
+        currentStreamSongId = newSong?.id ?? null;
         set({
           playlist: songs,
           playlistIndex: startIndex,
-          currentSong: songs[startIndex] || null,
-        }),
+          currentSong: newSong,
+        });
+      },
       setIsPlaying: (playing) => set({ isPlaying: playing }),
       setVolume: (volume) => {
         const { audioElement } = get();
@@ -111,6 +129,11 @@ export const usePlayerStore = create<PlayerState>()(
         const { playlist, playlistIndex, playMode } = get();
         if (playlist.length === 0) return;
 
+        // 通知后端停止旧歌的 ffmpeg 进程
+        if (currentStreamSongId != null) {
+          songsApi.stopStream(currentStreamSongId);
+        }
+
         let nextIndex: number;
 
         switch (playMode) {
@@ -127,15 +150,22 @@ export const usePlayerStore = create<PlayerState>()(
             break;
         }
 
+        const nextSong = playlist[nextIndex];
+        currentStreamSongId = nextSong?.id ?? null;
         set({
           playlistIndex: nextIndex,
-          currentSong: playlist[nextIndex],
+          currentSong: nextSong,
         });
       },
 
       playPrev: () => {
         const { playlist, playlistIndex, playMode } = get();
         if (playlist.length === 0) return;
+
+        // 通知后端停止旧歌的 ffmpeg 进程
+        if (currentStreamSongId != null) {
+          songsApi.stopStream(currentStreamSongId);
+        }
 
         let prevIndex: number;
 
@@ -153,9 +183,11 @@ export const usePlayerStore = create<PlayerState>()(
             break;
         }
 
+        const prevSong = playlist[prevIndex];
+        currentStreamSongId = prevSong?.id ?? null;
         set({
           playlistIndex: prevIndex,
-          currentSong: playlist[prevIndex],
+          currentSong: prevSong,
         });
       },
 
@@ -164,6 +196,8 @@ export const usePlayerStore = create<PlayerState>()(
         if (audioElement) {
           if (isPlaying) {
             audioElement.pause();
+            // 注意：暂停时不调用 stopStream，因为恢复播放需要同一个 HTTP 流
+            // ffmpeg 进程会在 pipe 缓冲区满后阻塞，不会无限占用 CPU
           } else {
             audioElement.play();
           }
