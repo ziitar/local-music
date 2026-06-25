@@ -11,6 +11,7 @@ import {
   startBackgroundAudio,
   stopBackgroundAudio,
 } from "../../services/backgroundAudio.ts";
+import { audioAnalyserService } from "../../services/audioAnalyser.ts";
 import {
   ChevronDown,
   Pause,
@@ -103,6 +104,13 @@ export function PlayerBar() {
       audioRef.current.volume = volume;
     }
   }, [volume]);
+
+  // Initialize global audio analyser pipeline
+  useEffect(() => {
+    if (audioRef.current) {
+      audioAnalyserService.init(audioRef.current);
+    }
+  }, []);
 
   useEffect(() => {
     if (!currentSong || !audioRef.current) return;
