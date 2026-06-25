@@ -4,7 +4,8 @@
  * Resolution priority:
  * 1. VITE_API_BASE_URL env var (build-time injection for mobile builds)
  * 2. localStorage 'api_base_url' (user-configured on native platforms)
- * 3. window.location.origin (web fallback, same-origin as backend)
+ * 3. '' (native platform without configuration)
+ * 4. window.location.origin + Vite base path (web fallback, same-origin as backend)
  */
 
 const STORAGE_KEY = 'api_base_url';
@@ -34,8 +35,10 @@ function resolveApiBase(): string {
     return '';
   }
 
-  // Priority 4: Web fallback — same origin as the backend
-  return window.location.origin;
+  // Priority 4: Web fallback — same origin as the backend, with subpath
+  // import.meta.env.BASE_URL is set by Vite's `base` config (e.g. "/music/")
+  const basePath = (import.meta.env.BASE_URL as string).replace(/\/+$/, '');
+  return window.location.origin + basePath;
 }
 
 /** The resolved API base URL (computed once at module load). */

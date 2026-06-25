@@ -3,6 +3,10 @@ WORKDIR /app
 
 USER root
 
+# 构建时变量（前端 base path）
+ARG VITE_BASE_PATH=/
+ENV VITE_BASE_PATH=${VITE_BASE_PATH}
+
 # Install VAAPI (Video Acceleration API) for Intel GPU hardware acceleration
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -16,7 +20,7 @@ RUN apt-get update && \
         && rm -rf /var/lib/apt/lists/*
 
 # Copy project files
-COPY deno.json deno.lock ./
+COPY deno.json ./
 
 # Keep node_modules from build for Deno to use at runtime
 

@@ -26,6 +26,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        VITE_BASE_PATH: ${VITE_BASE_PATH:-/}
     container_name: local-music-backend
     restart: unless-stopped
     # user: "${PUID:-1993}:${PGID:-1993}"

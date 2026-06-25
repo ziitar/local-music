@@ -1,19 +1,24 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import deno from "@deno/vite-plugin";
-// https://vite.dev/config/
+
+// 子路径配置：从 .env 的 VITE_BASE_PATH 读取，默认 "/"
+const base = (process.env.VITE_BASE_PATH ?? "/").replace(/\/+$/, "") + "/";
+
 export default defineConfig({
-  base: "./",
+  base,
   server: {
     port: 5173,
     proxy: {
-      "/api": {
+      [`^${base}api`]: {
         target: "http://localhost:8000/",
         changeOrigin: true,
+        rewrite: (path) => path.replace(new RegExp(`^${base.replace(/\//g, "\\/")}`), "/"),
       },
-      "/covers": {
+      [`^${base}covers`]: {
         target: "http://localhost:8000/",
         changeOrigin: true,
+        rewrite: (path) => path.replace(new RegExp(`^${base.replace(/\//g, "\\/")}`), "/"),
       },
     },
   },

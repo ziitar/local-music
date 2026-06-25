@@ -32,3 +32,7 @@ deno.lock
 android/app/build
 android/.gradle
 android/build
+
+# Claude local settings (environment-specific)
+.claude/settings.local.json
+.claude/rules/
