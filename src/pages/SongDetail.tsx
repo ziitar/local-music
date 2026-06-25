@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { songs as songsApi, lyrics as lyricsApi } from "../services/api.ts";
 import { usePlayerStore } from "../stores/playerStore.ts";
 import { parseLrc, findActiveLine } from "../lib/lrcParser.ts";
-import { useAudioAnalyser } from "../lib/useAudioAnalyser.ts";
+import { audioAnalyserService } from "../services/audioAnalyser.ts";
 import { createVisualizerState, drawSciFiVisualizer } from "../lib/visualizer.ts";
 import { ArrowLeft, Music } from "lucide-react";
 import type { Song } from "../types/index.ts";
@@ -33,7 +33,24 @@ export function SongDetailPage() {
     setCurrentTime,
   } = usePlayerStore();
 
-  const analyser = useAudioAnalyser(audioElement);
+  const [analyser, setAnalyser] = useState<AnalyserNode | null>(
+    audioAnalyserService.getAnalyser(),
+  );
+
+  // Wait for PlayerBar to initialize the analyser
+  useEffect(() => {
+    if (!analyser) {
+      const id = setInterval(() => {
+        const a = audioAnalyserService.getAnalyser();
+        if (a) {
+          setAnalyser(a);
+          clearInterval(id);
+        }
+      }, 100);
+      return () => clearInterval(id);
+    }
+  }, [analyser]);
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>(0);
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
