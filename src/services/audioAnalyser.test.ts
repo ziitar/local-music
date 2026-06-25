@@ -14,6 +14,8 @@ const mockSourceNode = {
   disconnect: vi.fn(),
 };
 
+let audioContextCreated = false;
+
 const mockAudioContext = {
   state: 'running' as string,
   resume: vi.fn(),
@@ -22,12 +24,25 @@ const mockAudioContext = {
   destination: {},
 };
 
-// Mock AudioContext constructor
-vi.stubGlobal('AudioContext', vi.fn(() => mockAudioContext));
+// Mock AudioContext as a class
+class MockAudioContext {
+  constructor() {
+    audioContextCreated = true;
+  }
+  state = mockAudioContext.state;
+  resume = mockAudioContext.resume;
+  createAnalyser = mockAudioContext.createAnalyser;
+  createMediaElementSource = mockAudioContext.createMediaElementSource;
+  destination = mockAudioContext.destination;
+}
+
+vi.stubGlobal('AudioContext', MockAudioContext);
 
 describe('audioAnalyserService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    audioContextCreated = false;
+    mockAudioContext.state = 'running';
     // Reset module state by re-importing
     vi.resetModules();
   });
@@ -39,7 +54,7 @@ describe('audioAnalyserService', () => {
 
       audioAnalyserService.init(audioEl);
 
-      expect(AudioContext).toHaveBeenCalledTimes(1);
+      expect(audioContextCreated).toBe(true);
     });
 
     it('creates source node from audio element', async () => {
