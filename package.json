@@ -9,7 +9,10 @@
     "build:android": "tsc -b && vite build && npx cap sync android",
     "open:android": "npx cap open android",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.0",
@@ -36,6 +39,8 @@
     "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.4.0",
     "@eslint/js": "^9.39.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/node": "^24.10.1",
     "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.4.20",
@@ -43,11 +48,13 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
+    "jsdom": "^29.1.1",
     "postcss": "^8.5.1",
     "tailwindcss": "^3.4.17",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
-    "vite": "npm:rolldown-vite@7.2.5"
+    "vite": "npm:rolldown-vite@7.2.5",
+    "vitest": "^4.1.9"
   },
   "overrides": {
     "vite": "npm:rolldown-vite@7.2.5"
