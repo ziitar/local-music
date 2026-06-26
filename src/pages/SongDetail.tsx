@@ -37,10 +37,14 @@ export function SongDetailPage() {
     audioAnalyserService.getAnalyser(),
   );
 
-  // Wait for PlayerBar to initialize the analyser
+  // Wait for PlayerBar to initialize the analyser, or try to init ourselves
   useEffect(() => {
     if (!analyser) {
       const id = setInterval(() => {
+        // Try to initialize if not yet ready and we have an audio element
+        if (audioElement && !audioAnalyserService.isReady()) {
+          audioAnalyserService.init(audioElement);
+        }
         const a = audioAnalyserService.getAnalyser();
         if (a) {
           setAnalyser(a);
@@ -49,7 +53,7 @@ export function SongDetailPage() {
       }, 100);
       return () => clearInterval(id);
     }
-  }, [analyser]);
+  }, [analyser, audioElement]);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>(0);
@@ -252,7 +256,7 @@ export function SongDetailPage() {
         </div>
 
         <div
-          className="flex-1 overflow-hidden px-4 pb-24"
+          className="flex-1 overflow-hidden px-4 pb-6"
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         >

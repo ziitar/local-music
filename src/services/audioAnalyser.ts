@@ -33,6 +33,12 @@ function init(audioElement: HTMLAudioElement): void {
     audioCtx.resume();
   }
 
+  // Disconnect old analyser from destination before creating a new one
+  if (analyserNode) {
+    try { analyserNode.disconnect(); } catch { /* ignore */ }
+    analyserNode = null;
+  }
+
   // Create source node from the audio element (one-time operation)
   if (!sourceNode || connectedElement !== audioElement) {
     if (sourceNode) {
@@ -48,7 +54,6 @@ function init(audioElement: HTMLAudioElement): void {
   analyserNode.smoothingTimeConstant = 0.8;
 
   // Connect: source → analyser → destination
-  // sourceNode is NEVER disconnected from the graph
   sourceNode.connect(analyserNode);
   analyserNode.connect(audioCtx.destination);
 }
