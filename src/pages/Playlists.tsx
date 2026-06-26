@@ -113,9 +113,9 @@ export function PlaylistsPage() {
                 </Card>
               </Link>
             )}
-            renderMobileItem={(playlist) => (
+            renderMobileItem={(playlist, index, arr) => (
               <Link key={playlist.id} to={`/playlist/${playlist.id}`}>
-                <div className="flex items-center gap-3 p-3 rounded-lg border backdrop-blur-md bg-background/60 border-white/10 hover:bg-white/50 cursor-pointer">
+                <div className={`flex items-center gap-3 p-3 rounded-lg border backdrop-blur-md bg-background/60 border-white/10 hover:bg-white/50 cursor-pointer ${index!==(arr.length -1)? 'mb-4':''}`}>
                   <CoverImage
                     src={playlist.cover_image}
                     alt={playlist.name}

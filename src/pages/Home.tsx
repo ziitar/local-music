@@ -17,7 +17,7 @@ export function HomePage() {
 
         {isAuthenticated
           ? (
-            <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
+            <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 px-4">
               <Link to="/library">
                 <Button size="lg" className="w-full sm:w-auto">
                   <Library className="mr-2 h-5 w-5" />
@@ -33,7 +33,7 @@ export function HomePage() {
             </div>
           )
           : (
-            <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
+            <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 px-4">
               <Link to="/login">
                 <Button size="lg" className="w-full sm:w-auto">登录</Button>
               </Link>

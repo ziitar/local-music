@@ -82,9 +82,9 @@ export function AlbumsPage() {
                   </Card>
                 </Link>
               )}
-              renderMobileItem={(album) => (
+              renderMobileItem={(album, index, arr) => (
                 <Link key={album.id} to={`/albums/${album.id}`}>
-                  <div className="flex items-center gap-3 p-3 rounded-lg border backdrop-blur-md bg-background/60 border-white/10 hover:bg-white/50 cursor-pointer">
+                  <div className={`flex items-center gap-3 p-3 rounded-lg border backdrop-blur-md bg-background/60 border-white/10 hover:bg-white/50 cursor-pointer ${index!==(arr.length -1)? 'mb-4':''}`}>
                     <CoverImage
                       src={album.cover_image}
                       alt={album.title}

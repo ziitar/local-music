@@ -6,7 +6,7 @@ interface CollectionGridProps<T> {
   /** Render a single desktop grid card. */
   renderCard: (item: T) => ReactNode;
   /** Render a single mobile list row. */
-  renderMobileItem: (item: T) => ReactNode;
+  renderMobileItem: (item: T, index: number, array: T[]) => ReactNode;
   /** Tailwind grid columns class for desktop. Defaults to "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4". */
   columns?: string;
 }
