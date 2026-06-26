@@ -10,6 +10,9 @@ import {
 import {
   startBackgroundAudio,
   stopBackgroundAudio,
+  updateNativeMediaMetadata,
+  updateNativePlaybackState,
+  onNativeMediaAction,
 } from "../../services/backgroundAudio.ts";
 import { audioAnalyserService } from "../../services/audioAnalyser.ts";
 import {
@@ -182,19 +185,36 @@ export function PlayerBar() {
       currentTime: audioRef.current.currentTime || 0,
       duration: effectiveDuration,
     });
+    updateNativePlaybackState({
+      isPlaying,
+      position: audioRef.current.currentTime || 0,
+      duration: effectiveDuration,
+    });
   }, [isPlaying]);
 
   useEffect(() => {
     if (!audioRef.current) return;
 
+    let lastNativeUpdate = 0;
     const handleTimeUpdate = () => {
-      setCurrentTime(audioRef.current?.currentTime || 0);
+      const time = audioRef.current?.currentTime || 0;
+      setCurrentTime(time);
       // Update Media Session playback state for lock screen progress
       updateMediaSessionPlaybackState({
         isPlaying: !audioRef.current?.paused,
-        currentTime: audioRef.current?.currentTime || 0,
+        currentTime: time,
         duration: effectiveDuration,
       });
+      // Throttle native bridge updates to once per second
+      const now = Date.now();
+      if (now - lastNativeUpdate >= 1000) {
+        lastNativeUpdate = now;
+        updateNativePlaybackState({
+          isPlaying: !audioRef.current?.paused,
+          position: time,
+          duration: effectiveDuration,
+        });
+      }
     };
 
     const handleLoadedMetadata = () => {
@@ -263,10 +283,50 @@ export function PlayerBar() {
     });
   }, [playNext, playPrev, setIsPlaying, setCurrentTime]);
 
+  // Listen for native notification media actions (Android)
+  useEffect(() => {
+    let handle: { remove: () => void } | null = null;
+    onNativeMediaAction((action) => {
+      switch (action) {
+        case 'play':
+          setIsPlaying(true);
+          break;
+        case 'pause':
+          setIsPlaying(false);
+          break;
+        case 'next':
+          playNext();
+          break;
+        case 'previous':
+          playPrev();
+          break;
+        case 'stop':
+          setIsPlaying(false);
+          stopBackgroundAudio();
+          break;
+        default:
+          // Handle seek actions like "seek:12345"
+          if (action.startsWith('seek:') && audioRef.current) {
+            const posMs = parseInt(action.slice(5), 10);
+            audioRef.current.currentTime = posMs / 1000;
+            setCurrentTime(posMs / 1000);
+          }
+          break;
+      }
+    }).then((h) => {
+      if (h) handle = h;
+    });
+
+    return () => {
+      handle?.remove();
+    };
+  }, [playNext, playPrev, setIsPlaying, setCurrentTime]);
+
   // Media Session: update metadata when song changes
   useEffect(() => {
     if (currentSong) {
       updateMediaSessionMetadata(currentSong);
+      updateNativeMediaMetadata(currentSong);
     }
   }, [currentSong?.id]);
 
