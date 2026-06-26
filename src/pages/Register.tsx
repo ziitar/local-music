@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../stores/authStore.ts";
 import { Button } from "../components/ui/Button.tsx";
@@ -13,12 +13,19 @@ import {
 
 export function RegisterPage() {
   const navigate = useNavigate();
-  const { register } = useAuthStore();
+  const { register, isAuthenticated, isLoading } = useAuthStore();
+
+  // If already authenticated, redirect to home
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      navigate("/", { replace: true });
+    }
+  }, [isLoading, isAuthenticated, navigate]);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +41,7 @@ export function RegisterPage() {
       return;
     }
 
-    setIsLoading(true);
+    setIsSubmitting(true);
 
     const result = await register(username, password);
 
@@ -44,7 +51,7 @@ export function RegisterPage() {
       setError(result.message);
     }
 
-    setIsLoading(false);
+    setIsSubmitting(false);
   };
 
   return (
@@ -100,8 +107,8 @@ export function RegisterPage() {
                 required
               />
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "注册中..." : "注册"}
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? "注册中..." : "注册"}
             </Button>
             <p className="text-center text-sm text-muted-foreground">
               已有账号?{" "}

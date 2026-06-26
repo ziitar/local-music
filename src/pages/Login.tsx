@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../stores/authStore.ts";
 import { Button } from "../components/ui/Button.tsx";
@@ -13,16 +13,23 @@ import {
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const { login } = useAuthStore();
+  const { login, isAuthenticated, isLoading } = useAuthStore();
+
+  // If already authenticated, redirect to home
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      navigate("/", { replace: true });
+    }
+  }, [isLoading, isAuthenticated, navigate]);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setIsLoading(true);
+    setIsSubmitting(true);
 
     const result = await login(username, password);
 
@@ -32,7 +39,7 @@ export function LoginPage() {
       setError(result.message);
     }
 
-    setIsLoading(false);
+    setIsSubmitting(false);
   };
 
   return (
@@ -75,8 +82,8 @@ export function LoginPage() {
                 required
               />
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "登录中..." : "登录"}
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? "登录中..." : "登录"}
             </Button>
             <p className="text-center text-sm text-muted-foreground">
               还没有账号?{" "}
