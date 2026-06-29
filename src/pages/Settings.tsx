@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useAuthStore } from "../stores/authStore";
 import { config as configApi } from "../services/api";
+import { usePlayerStore } from "../stores/playerStore";
+import { EQ_PRESETS } from "../services/equalizer";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import {
@@ -11,6 +13,7 @@ import {
   Server,
   Settings,
   Trash2,
+  Activity,
 } from "lucide-react";
 import type { Config } from "../types";
 import { API_BASE, setApiBaseUrl, isApiConfigured } from "../config";
@@ -30,6 +33,13 @@ export function SettingsPage() {
     text: string;
   } | null>(null);
   const [serverUrl, setServerUrl] = useState(API_BASE);
+  const [analyzeStatus, setAnalyzeStatus] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  const {
+    eqEnabled, eqPreset, loudnessNormEnabled,
+    setEqEnabled, setEqPreset, setLoudnessNormEnabled,
+  } = usePlayerStore();
 
   // Detect if running on native platform (Capacitor)
   const isNativePlatform = (() => {
@@ -136,6 +146,18 @@ export function SettingsPage() {
     });
   };
 
+  const handleAnalyzeLoudness = async () => {
+    setIsAnalyzing(true);
+    setAnalyzeStatus(null);
+    try {
+      const result = await songsApi.analyzeLoudness();
+      setAnalyzeStatus(result.message || "Analysis complete");
+    } catch (error) {
+      setAnalyzeStatus("Failed: " + (error as Error).message);
+    }
+    setIsAnalyzing(false);
+  };
+
   if (isLoading) {
     return (
       <div className="container mx-auto p-6">
@@ -212,6 +234,94 @@ export function SettingsPage() {
           )}
         </div>
       )}
+
+      {/* Playback Settings */}
+      <div className="mb-8 backdrop-blur-md bg-background/60 border border-white/10 p-6 rounded-lg">
+        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+          <Activity className="h-5 w-5" />
+          播放
+        </h2>
+
+        {/* Equalizer toggle */}
+        <div className="flex items-center justify-between py-3 border-b border-white/5">
+          <div>
+            <p className="font-medium">均衡器</p>
+            <p className="text-sm text-muted-foreground">关闭时音频不经过均衡器处理</p>
+          </div>
+          <button
+            onClick={() => setEqEnabled(!eqEnabled)}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              eqEnabled ? "bg-primary" : "bg-muted"
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                eqEnabled ? "translate-x-6" : "translate-x-1"
+              }`}
+            />
+          </button>
+        </div>
+
+        {/* EQ preset selector (visible when EQ enabled) */}
+        {eqEnabled && (
+          <div className="py-3 border-b border-white/5">
+            <p className="text-sm text-muted-foreground mb-2">预设</p>
+            <div className="flex flex-wrap gap-2">
+              {EQ_PRESETS.map((preset) => (
+                <button
+                  key={preset.name}
+                  onClick={() => setEqPreset(preset.name)}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                    eqPreset === preset.name
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted hover:bg-muted/80 text-muted-foreground"
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Loudness normalization toggle */}
+        <div className="flex items-center justify-between py-3">
+          <div>
+            <p className="font-medium">响度归一化</p>
+            <p className="text-sm text-muted-foreground">自动平衡不同歌曲的音量大小</p>
+          </div>
+          <button
+            onClick={() => setLoudnessNormEnabled(!loudnessNormEnabled)}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              loudnessNormEnabled ? "bg-primary" : "bg-muted"
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                loudnessNormEnabled ? "translate-x-6" : "translate-x-1"
+              }`}
+            />
+          </button>
+        </div>
+
+        {/* Analyze button (admin only) */}
+        {isAdmin && (
+          <div className="pt-3 border-t border-white/5">
+            <Button
+              onClick={handleAnalyzeLoudness}
+              disabled={isAnalyzing}
+              variant="outline"
+              className="gap-2"
+            >
+              <Activity className="h-4 w-4" />
+              {isAnalyzing ? "分析中..." : "触发分析"}
+            </Button>
+            {analyzeStatus && (
+              <p className="text-sm text-muted-foreground mt-2">{analyzeStatus}</p>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Music Source Paths */}
       <div className="mb-8 backdrop-blur-md bg-background/60 border border-white/10 p-6 rounded-lg">

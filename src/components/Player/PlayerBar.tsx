@@ -15,6 +15,7 @@ import {
   onNativeMediaAction,
 } from "../../services/backgroundAudio.ts";
 import { audioAnalyserService } from "../../services/audioAnalyser.ts";
+import { equalizerService } from "../../services/equalizer.ts";
 import {
   ChevronDown,
   Pause,
@@ -51,6 +52,9 @@ export function PlayerBar() {
     currentTime,
     playMode,
     selectedBitrate,
+    eqEnabled,
+    eqPreset,
+    loudnessNormEnabled,
     setIsPlaying,
     setVolume,
     setCurrentTime,
@@ -114,6 +118,33 @@ export function PlayerBar() {
       audioAnalyserService.init(audioRef.current);
     }
   }, []);
+
+  // EQ toggle: apply preset on enable, reconnect audio graph
+  useEffect(() => {
+    if (eqEnabled) {
+      equalizerService.applyPreset(eqPreset);
+    }
+    audioAnalyserService.setEqEnabled(eqEnabled);
+  }, [eqEnabled]);
+
+  // EQ preset change (only matters when enabled)
+  useEffect(() => {
+    if (eqEnabled) {
+      equalizerService.applyPreset(eqPreset);
+    }
+  }, [eqPreset, eqEnabled]);
+
+  // Loudness normalization: compute and apply gain multiplier
+  useEffect(() => {
+    if (!loudnessNormEnabled || !currentSong?.integrated_loudness) {
+      audioAnalyserService.setLoudnessGain(1.0);
+      return;
+    }
+    const targetLUFS = -14;
+    const adjustment = targetLUFS - currentSong.integrated_loudness;
+    const multiplier = Math.max(0.1, Math.min(2.0, Math.pow(10, adjustment / 20)));
+    audioAnalyserService.setLoudnessGain(multiplier);
+  }, [loudnessNormEnabled, currentSong?.id, currentSong?.integrated_loudness]);
 
   useEffect(() => {
     if (!currentSong || !audioRef.current) return;

@@ -29,6 +29,9 @@ export interface Song {
   cue_file_path?: string;
   track_start_time?: number;
   track_end_time?: number;
+  // 响度归一化
+  integrated_loudness?: number;
+  true_peak?: number;
 }
 
 export interface Artist {

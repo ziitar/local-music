@@ -274,6 +274,10 @@ export const songs = {
   async delete(id: number): Promise<{ message: string }> {
     return request(`/api/songs/${id}`, { method: "DELETE" });
   },
+
+  async analyzeLoudness(): Promise<{ message: string }> {
+    return request("/api/songs/analyze-loudness", { method: "POST" });
+  },
 };
 
 export const playlists = {

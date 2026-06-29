@@ -19,6 +19,10 @@ interface PlayerState {
   audioElement: HTMLAudioElement | null;
   playMode: PlayMode;
   selectedBitrate: string;
+  // EQ & loudness
+  eqEnabled: boolean;
+  eqPreset: string;
+  loudnessNormEnabled: boolean;
 
   setCurrentSong: (song: Song | null) => void;
   setPlaylist: (songs: Song[], startIndex?: number) => void;
@@ -33,6 +37,9 @@ interface PlayerState {
   playNext: () => void;
   playPrev: () => void;
   togglePlay: () => void;
+  setEqEnabled: (enabled: boolean) => void;
+  setEqPreset: (preset: string) => void;
+  setLoudnessNormEnabled: (enabled: boolean) => void;
 }
 
 // Get initial volume from localStorage or default to 1
@@ -64,6 +71,9 @@ export const usePlayerStore = create<PlayerState>()(
       audioElement: null,
       playMode: "sequential",
       selectedBitrate: "",
+      eqEnabled: false,
+      eqPreset: "flat",
+      loudnessNormEnabled: false,
 
       setCurrentSong: (song) => {
         // 通知后端停止旧歌的 ffmpeg 进程
@@ -204,6 +214,10 @@ export const usePlayerStore = create<PlayerState>()(
         }
         set({ isPlaying: !isPlaying });
       },
+
+      setEqEnabled: (enabled) => set({ eqEnabled: enabled }),
+      setEqPreset: (preset) => set({ eqPreset: preset }),
+      setLoudnessNormEnabled: (enabled) => set({ loudnessNormEnabled: enabled }),
     }),
     {
       name: "player-storage",
@@ -212,6 +226,9 @@ export const usePlayerStore = create<PlayerState>()(
         volume: state.volume,
         playMode: state.playMode,
         selectedBitrate: state.selectedBitrate,
+        eqEnabled: state.eqEnabled,
+        eqPreset: state.eqPreset,
+        loudnessNormEnabled: state.loudnessNormEnabled,
       }),
     },
   ),
