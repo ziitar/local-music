@@ -3,9 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../theme/colors.dart';
 import '../theme/text_styles.dart';
+import '../models/eq_preset.dart';
 import '../providers/auth_provider.dart';
 import '../providers/player_provider.dart';
 import '../providers/providers.dart';
+import '../providers/settings_provider.dart';
+import '../services/equalizer_service.dart';
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -15,6 +18,7 @@ class SettingsPage extends ConsumerWidget {
     final auth = ref.watch(authProvider);
     final player = ref.watch(playerProvider);
     final storage = ref.watch(storageServiceProvider);
+    final settings = ref.watch(playbackSettingsProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('设置')),
@@ -59,12 +63,65 @@ class SettingsPage extends ConsumerWidget {
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _showQualityPicker(context, ref),
           ),
-          ListTile(
-            leading: const Icon(Icons.equalizer),
+
+          // Equalizer toggle
+          SwitchListTile(
+            secondary: const Icon(Icons.equalizer),
             title: const Text('均衡器'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              context.push('/equalizer');
+            subtitle: const Text('关闭时音频不经过均衡器处理'),
+            value: settings.eqEnabled,
+            activeThumbColor: AppColors.primary,
+            onChanged: (value) {
+              ref.read(playbackSettingsProvider.notifier).setEqEnabled(value);
+              EqualizerService().setEnabled(value);
+            },
+          ),
+
+          // Equalizer preset selector (visible when EQ enabled)
+          if (settings.eqEnabled) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+              child: SizedBox(
+                height: 42,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: EqPresets.all.map((preset) {
+                    final isSelected = settings.eqPresetName == preset.name;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ChoiceChip(
+                        label: Text(preset.label),
+                        selected: isSelected,
+                        selectedColor: AppColors.primary,
+                        onSelected: (_) {
+                          ref.read(playbackSettingsProvider.notifier)
+                              .setEqPreset(preset.name);
+                          EqualizerService().applyPreset(preset.name);
+                        },
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const SizedBox(width: 24),
+              title: const Text('详细均衡器'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/equalizer'),
+            ),
+          ],
+
+          // Loudness normalization toggle
+          SwitchListTile(
+            secondary: const Icon(Icons.volume_up),
+            title: const Text('响度归一化'),
+            subtitle: const Text('自动调整音量，使不同歌曲响度一致'),
+            value: settings.loudnessNormalizationEnabled,
+            activeThumbColor: AppColors.primary,
+            onChanged: (value) {
+              ref.read(playbackSettingsProvider.notifier)
+                  .setLoudnessNormalization(value);
             },
           ),
 

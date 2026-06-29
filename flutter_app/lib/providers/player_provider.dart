@@ -6,6 +6,7 @@ import '../services/audio_handler.dart';
 import '../services/cache_service.dart';
 import '../services/loudness_service.dart';
 import 'providers.dart';
+import 'settings_provider.dart';
 
 /// Playback mode.
 enum PlayMode { sequential, loopAll, loopOne, shuffle }
@@ -20,6 +21,7 @@ class PlayerState {
   final Duration duration;
   final double volume;
   final double loudnessMultiplier;
+  final bool loudnessNormalizationEnabled;
   final PlayMode playMode;
   final String? quality;
   final String? error;
@@ -33,13 +35,17 @@ class PlayerState {
     this.duration = Duration.zero,
     this.volume = 1.0,
     this.loudnessMultiplier = 1.0,
+    this.loudnessNormalizationEnabled = true,
     this.playMode = PlayMode.sequential,
     this.quality,
     this.error,
   });
 
-  /// Effective volume = user volume * loudness multiplier, clamped to [0, 1].
-  double get effectiveVolume => (volume * loudnessMultiplier).clamp(0.0, 1.0);
+  /// Effective volume = user volume * loudness multiplier (if enabled), clamped to [0, 1].
+  double get effectiveVolume {
+    final mult = loudnessNormalizationEnabled ? loudnessMultiplier : 1.0;
+    return (volume * mult).clamp(0.0, 1.0);
+  }
 
   PlayerState copyWith({
     Song? currentSong,
@@ -50,6 +56,7 @@ class PlayerState {
     Duration? duration,
     double? volume,
     double? loudnessMultiplier,
+    bool? loudnessNormalizationEnabled,
     PlayMode? playMode,
     String? quality,
     String? error,
@@ -63,6 +70,7 @@ class PlayerState {
       duration: duration ?? this.duration,
       volume: volume ?? this.volume,
       loudnessMultiplier: loudnessMultiplier ?? this.loudnessMultiplier,
+      loudnessNormalizationEnabled: loudnessNormalizationEnabled ?? this.loudnessNormalizationEnabled,
       playMode: playMode ?? this.playMode,
       quality: quality ?? this.quality,
       error: error,
@@ -235,6 +243,12 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
     state = state.copyWith(quality: quality);
   }
 
+  /// Update loudness normalization toggle and re-apply volume.
+  Future<void> setLoudnessNormalization(bool enabled) async {
+    state = state.copyWith(loudnessNormalizationEnabled: enabled);
+    await _player.setVolume(state.effectiveVolume);
+  }
+
   Future<void> addToQueue(Song song) async {
     state = state.copyWith(queue: [...state.queue, song]);
   }
@@ -268,5 +282,14 @@ final playerProvider = StateNotifierProvider<PlayerNotifier, PlayerState>((ref) 
   final api = ref.watch(apiClientProvider);
   final cache = ref.watch(cacheServiceProvider);
   final loudness = ref.watch(loudnessServiceProvider);
-  return PlayerNotifier(handler, api, cache, loudness);
+  final notifier = PlayerNotifier(handler, api, cache, loudness);
+
+  // Sync loudness normalization toggle from playback settings
+  ref.listen<PlaybackSettings>(playbackSettingsProvider, (prev, next) {
+    if (prev?.loudnessNormalizationEnabled != next.loudnessNormalizationEnabled) {
+      notifier.setLoudnessNormalization(next.loudnessNormalizationEnabled);
+    }
+  });
+
+  return notifier;
 });

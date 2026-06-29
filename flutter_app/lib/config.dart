@@ -16,4 +16,9 @@ class AppConfig {
 
   // Loudness normalization
   static const double targetLUFS = -14.0;
+
+  // Settings persistence keys
+  static const String storageKeyEqEnabled = 'eq_enabled';
+  static const String storageKeyEqPreset = 'eq_preset';
+  static const String storageKeyLoudnessNormEnabled = 'loudness_norm_enabled';
 }
