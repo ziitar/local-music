@@ -3,6 +3,7 @@ import { sql } from "../services/db.ts";
 import { scanMusicFiles } from "../services/scanner.ts";
 import { parseBitrate } from "../utils/metadataCleaner.ts";
 import { requireAdmin } from "../middleware/admin.ts";
+import { analyzeLoudness } from "../utils/loudnessAnalyzer.ts";
 
 const router = new Router();
 
@@ -101,6 +102,67 @@ router.post("/api/songs/scan", requireAdmin, async (ctx) => {
     console.error("Scan error:", error);
     ctx.response.status = 500;
     ctx.response.body = { success: false, message: `Scan failed: ${error}` };
+  }
+});
+
+/**
+ * POST /api/songs/analyze-loudness
+ * Batch analyze loudness for all songs missing loudness data.
+ * Admin only. Runs in background, returns immediately.
+ */
+router.post("/api/songs/analyze-loudness", requireAdmin, async (ctx) => {
+  try {
+    const songs = await sql`
+      SELECT id, title, file_path, is_cue_track
+      FROM songs
+      WHERE integrated_loudness IS NULL
+      ORDER BY id
+    `;
+
+    if (songs.length === 0) {
+      ctx.response.body = { success: true, message: "All songs already have loudness data", analyzed: 0 };
+      return;
+    }
+
+    ctx.response.body = {
+      success: true,
+      message: `Starting loudness analysis for ${songs.length} songs`,
+      total: songs.length,
+    };
+
+    // Run analysis in background (respond immediately)
+    (async () => {
+      let analyzed = 0;
+      let failed = 0;
+      for (const song of songs) {
+        try {
+          const audioPath = song.is_cue_track
+            ? song.file_path.split("#track-")[0]
+            : song.file_path;
+          const loudness = await analyzeLoudness(audioPath);
+          if (loudness) {
+            await sql`
+              UPDATE songs
+              SET integrated_loudness = ${loudness.integratedLoudness},
+                  true_peak = ${loudness.truePeak}
+              WHERE id = ${song.id}
+            `;
+            analyzed++;
+            console.log(`[loudness] ${analyzed}/${songs.length} — "${song.title}": ${loudness.integratedLoudness} LUFS`);
+          } else {
+            failed++;
+          }
+        } catch (err) {
+          failed++;
+          console.warn(`[loudness] Failed for "${song.title}":`, err);
+        }
+      }
+      console.log(`[loudness] Batch complete: ${analyzed} analyzed, ${failed} failed`);
+    })();
+  } catch (error) {
+    console.error("Loudness analysis error:", error);
+    ctx.response.status = 500;
+    ctx.response.body = { success: false, message: `Analysis failed: ${error}` };
   }
 });
 
