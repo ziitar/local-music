@@ -126,7 +126,7 @@ router.get("/api/songs", async (ctx) => {
            COALESCE(al.title, 'Unknown Album') as album,
            s.duration, s.quality, s.file_size, s.format, s.created_at,
            s.is_cue_track, s.cue_file_path, s.track_start_time, track_end_time,
-           s.cover_image
+           s.cover_image, s.integrated_loudness, s.true_peak
     FROM songs s
     LEFT JOIN albums al ON s.album_id = al.id
     WHERE 1=1
@@ -213,7 +213,7 @@ router.get("/api/songs/:id", async (ctx) => {
            COALESCE(al.title, 'Unknown Album') as album,
            s.duration, s.file_path, s.quality, s.file_size, s.format, s.created_at,
            s.is_cue_track, s.cue_file_path, s.track_start_time, s.track_end_time,
-           s.cover_image
+           s.cover_image, s.integrated_loudness, s.true_peak
     FROM songs s
     LEFT JOIN albums al ON s.album_id = al.id
     WHERE s.id = ${id}

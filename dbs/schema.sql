@@ -58,7 +58,9 @@ CREATE TABLE IF NOT EXISTS songs (
     cue_file_path VARCHAR(500),
     track_start_time INT,
     track_end_time INT,
-    file_hash VARCHAR(64)
+    file_hash VARCHAR(64),
+    integrated_loudness REAL,
+    true_peak REAL
 );
 
 -- 歌曲-艺术家关联表 (多对多)
