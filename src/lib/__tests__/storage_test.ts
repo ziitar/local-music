@@ -4,30 +4,13 @@
  * User Journeys:
  * 1. As a web user, access token is stored in localStorage.
  * 2. As a web user, refresh token is managed by httpOnly cookie (storage returns null).
- * 3. As an Android user, both tokens are stored in @capacitor/preferences.
- * 4. As any user, the correct storage implementation is selected based on platform.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock the config module
 vi.mock("../../config.ts", () => ({
-  isNativePlatform: vi.fn(() => false),
-}));
-
-// Mock @capacitor/preferences
-vi.mock("@capacitor/preferences", () => ({
-  Preferences: {
-    get: vi.fn(({ key }: { key: string }) => {
-      const store: Record<string, string | null> = {
-        access_token: "mock-access-token",
-        refresh_token: "mock-refresh-token",
-      };
-      return Promise.resolve({ value: store[key] ?? null });
-    }),
-    set: vi.fn(() => Promise.resolve()),
-    remove: vi.fn(() => Promise.resolve()),
-  },
+  isApiConfigured: vi.fn(() => true),
 }));
 
 describe("WebStorage", () => {
@@ -83,9 +66,7 @@ describe("WebStorage", () => {
 });
 
 describe("createTokenStorage", () => {
-  it("returns WebStorage when not on native platform", async () => {
-    const { isNativePlatform } = await import("../../config.ts");
-    vi.mocked(isNativePlatform).mockReturnValue(false);
+  it("returns WebStorage", async () => {
     const { createTokenStorage } = await import("../storage.ts");
     const storage = createTokenStorage();
     // WebStorage returns null for refresh token

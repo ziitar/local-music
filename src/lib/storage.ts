@@ -1,6 +1,3 @@
-import { isNativePlatform } from "../config.ts";
-import { Preferences } from "@capacitor/preferences";
-
 export interface TokenStorage {
   getAccessToken(): Promise<string | null>;
   setAccessToken(token: string): Promise<void>;
@@ -39,49 +36,7 @@ class WebStorage implements TokenStorage {
   }
 }
 
-class NativeStorage implements TokenStorage {
-  private static ACCESS_TOKEN_KEY = "access_token";
-  private static REFRESH_TOKEN_KEY = "refresh_token";
-
-  async getAccessToken(): Promise<string | null> {
-    console.log('[LocalMusic] NativeStorage.getAccessToken()');
-    const result = await Preferences.get({ key: NativeStorage.ACCESS_TOKEN_KEY });
-    console.log('[LocalMusic] getAccessToken result:', result.value ? 'has value' : 'null');
-    return result.value;
-  }
-
-  async setAccessToken(token: string): Promise<void> {
-    console.log('[LocalMusic] NativeStorage.setAccessToken()');
-    await Preferences.set({ key: NativeStorage.ACCESS_TOKEN_KEY, value: token });
-  }
-
-  async removeAccessToken(): Promise<void> {
-    console.log('[LocalMusic] NativeStorage.removeAccessToken()');
-    await Preferences.remove({ key: NativeStorage.ACCESS_TOKEN_KEY });
-  }
-
-  async getRefreshToken(): Promise<string | null> {
-    console.log('[LocalMusic] NativeStorage.getRefreshToken()');
-    const result = await Preferences.get({ key: NativeStorage.REFRESH_TOKEN_KEY });
-    console.log('[LocalMusic] getRefreshToken result:', result.value ? 'has value' : 'null');
-    return result.value;
-  }
-
-  async setRefreshToken(token: string): Promise<void> {
-    console.log('[LocalMusic] NativeStorage.setRefreshToken()');
-    await Preferences.set({ key: NativeStorage.REFRESH_TOKEN_KEY, value: token });
-  }
-
-  async removeRefreshToken(): Promise<void> {
-    console.log('[LocalMusic] NativeStorage.removeRefreshToken()');
-    await Preferences.remove({ key: NativeStorage.REFRESH_TOKEN_KEY });
-  }
-}
-
 export function createTokenStorage(): TokenStorage {
-  if (isNativePlatform()) {
-    return new NativeStorage();
-  }
   return new WebStorage();
 }
 

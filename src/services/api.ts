@@ -13,7 +13,7 @@ import type {
   User,
 } from "../types";
 
-import { API_BASE, isNativePlatform } from "../config";
+import { API_BASE } from "../config";
 import { tokenStorage } from "../lib/storage.ts";
 
 let isRefreshing = false;
@@ -40,24 +40,6 @@ async function tryRefreshToken(): Promise<boolean> {
   refreshPromise = (async () => {
     try {
       const headers: HeadersInit = { "Content-Type": "application/json" };
-
-      if (isNativePlatform()) {
-        const refreshToken = await tokenStorage.getRefreshToken();
-        if (!refreshToken) return false;
-
-        const response = await fetch(`${API_BASE}/api/auth/refresh`, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ refreshToken }),
-        });
-
-        if (!response.ok) return false;
-
-        const data = await response.json();
-        await setToken(data.token);
-        await tokenStorage.setRefreshToken(data.refreshToken);
-        return true;
-      }
 
       // Web: browser sends httpOnly cookie automatically
       const response = await fetch(`${API_BASE}/api/auth/refresh`, {
@@ -98,14 +80,8 @@ async function request<T>(
   if (token) {
     (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
   }
-  if (isNativePlatform()) {
-    (headers as Record<string, string>)["X-Platform"] = "native";
-  }
 
-  const fetchOptions: RequestInit = { ...options, headers };
-  if (!isNativePlatform()) {
-    fetchOptions.credentials = "same-origin";
-  }
+  const fetchOptions: RequestInit = { ...options, headers, credentials: "same-origin" };
 
   const url = `${API_BASE}${endpoint}`;
   console.log('[LocalMusic] Fetching URL:', url);
@@ -123,7 +99,7 @@ async function request<T>(
       response = await fetch(`${API_BASE}${endpoint}`, {
         ...options,
         headers,
-        ...(!isNativePlatform() ? { credentials: "same-origin" } : {}),
+        credentials: "same-origin",
       });
     }
   }
@@ -187,22 +163,11 @@ export const auth = {
 
   async logout(): Promise<void> {
     try {
-      if (isNativePlatform()) {
-        const refreshToken = await tokenStorage.getRefreshToken();
-        if (refreshToken) {
-          await fetch(`${API_BASE}/api/auth/logout`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ refreshToken }),
-          });
-        }
-      } else {
-        await fetch(`${API_BASE}/api/auth/logout`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "same-origin",
-        });
-      }
+      await fetch(`${API_BASE}/api/auth/logout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+      });
     } catch {
       // Ignore logout API errors — still clear local state
     }

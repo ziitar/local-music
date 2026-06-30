@@ -6,8 +6,6 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "build:android": "tsc -b && vite build && npx cap sync android",
-    "open:android": "npx cap open android",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
@@ -15,9 +13,6 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@capacitor/android": "^8.4.0",
-    "@capacitor/core": "^8.4.0",
-    "@capacitor/preferences": "^8.0.1",
     "@deno/vite-plugin": "^1.0.6",
     "@types/react": "^19.2.14",
     "@vitejs/plugin-react": "^5.1.4",
@@ -36,8 +31,6 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
-    "@capacitor/assets": "^3.0.5",
-    "@capacitor/cli": "^8.4.0",
     "@eslint/js": "^9.39.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
