@@ -67,7 +67,7 @@ class CacheService {
   Future<String?> downloadSong(Song song, String streamUrl) async {
     if (_cacheDir == null) return null;
 
-    final filePath = '${_cacheDir!.path}/songs/${song.id}_${song.filePath.split('/').last}';
+    final filePath = '${_cacheDir!.path}/songs/${song.id}${song.format}';
 
     try {
       await _dio.download(streamUrl, filePath);

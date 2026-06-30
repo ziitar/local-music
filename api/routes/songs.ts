@@ -240,9 +240,12 @@ router.get("/api/songs", async (ctx) => {
     )`;
   }
 
-  const songs = await query;
+  const songs = (await query).map((s: Record<string, unknown>) => ({
+    ...s,
+    file_size: Number(s.file_size),
+  }));
   const countResult = await countQuery;
-  const total = countResult[0]?.total || 0;
+  const total = Number(countResult[0]?.total || 0);
 
   ctx.response.body = {
     songs,
@@ -287,7 +290,10 @@ router.get("/api/songs/:id", async (ctx) => {
     return;
   }
 
-  ctx.response.body = result[0];
+  ctx.response.body = {
+    ...result[0],
+    file_size: Number(result[0].file_size),
+  };
 });
 
 router.get("/api/songs/:id/stream", async (ctx) => {

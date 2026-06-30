@@ -40,9 +40,13 @@ router.get("/api/artists", async (ctx) => {
     countQuery = sql`${countQuery} AND a.name ILIKE ${"%" + search + "%"}`;
   }
 
-  const artists = await query;
+  const artists = (await query).map((a: Record<string, unknown>) => ({
+    ...a,
+    song_count: Number(a.song_count),
+    album_count: Number(a.album_count),
+  }));
   const countResult = await countQuery;
-  const total = countResult[0]?.total || 0;
+  const total = Number(countResult[0]?.total || 0);
 
   ctx.response.body = {
     artists,
@@ -77,7 +81,7 @@ router.get("/api/artists/:id", async (ctx) => {
     return;
   }
 
-  const albums = await sql`
+  const albums = (await sql`
     SELECT al.id, al.title, al.cover_image, al.release_year,
            COUNT(s.id) as song_count
     FROM albums al
@@ -86,7 +90,10 @@ router.get("/api/artists/:id", async (ctx) => {
     WHERE aa.artist_id = ${id}
     GROUP BY al.id
     ORDER BY al.release_year DESC NULLS LAST, al.title
-  `;
+  `).map((a: Record<string, unknown>) => ({
+    ...a,
+    song_count: Number(a.song_count),
+  }));
 
   ctx.response.body = {
     ...artistResult[0],

@@ -51,7 +51,7 @@ router.get("/api/playlists", async (ctx) => {
   }
 
   // Get playlists with song count and cover image from last added song's album
-  const playlists = await sql`
+  const playlists = (await sql`
     SELECT p.id, p.name, p.description, p.created_at,
            COUNT(ps.song_id) as song_count,
            (
@@ -67,7 +67,10 @@ router.get("/api/playlists", async (ctx) => {
     WHERE p.user_id = ${userId}
     GROUP BY p.id
     ORDER BY p.created_at DESC
-  `;
+  `).map((p: Record<string, unknown>) => ({
+    ...p,
+    song_count: Number(p.song_count),
+  }));
 
   ctx.response.body = playlists;
 });

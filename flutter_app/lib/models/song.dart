@@ -9,11 +9,7 @@ class Song {
   final String artist;
   final String album;
   final int duration;
-  @JsonKey(name: 'file_path')
-  final String filePath;
   final String quality;
-  @JsonKey(name: 'file_size')
-  final int fileSize;
   final String format;
   @JsonKey(name: 'cover_image')
   final String? coverImage;
@@ -42,9 +38,7 @@ class Song {
     required this.artist,
     required this.album,
     required this.duration,
-    required this.filePath,
     required this.quality,
-    required this.fileSize,
     required this.format,
     this.coverImage,
     this.createdAt,

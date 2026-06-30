@@ -62,9 +62,12 @@ router.get("/api/albums", async (ctx) => {
     )`;
   }
 
-  const albums = await query;
+  const albums = (await query).map((a: Record<string, unknown>) => ({
+    ...a,
+    song_count: Number(a.song_count),
+  }));
   const countResult = await countQuery;
-  const total = countResult[0]?.total || 0;
+  const total = Number(countResult[0]?.total || 0);
 
   ctx.response.body = {
     albums,
@@ -107,7 +110,7 @@ router.get("/api/albums/:id", async (ctx) => {
     return;
   }
 
-  const songs = await sql`
+  const songs = (await sql`
     SELECT s.id, s.title,
            COALESCE((
              SELECT string_agg(ar2.name, ', ' ORDER BY sa2.position)
@@ -124,7 +127,10 @@ router.get("/api/albums/:id", async (ctx) => {
     LEFT JOIN albums al ON s.album_id = al.id
     WHERE s.album_id = ${id}
     ORDER BY s.track_no NULLS LAST, s.id
-  `;
+  `).map((s: Record<string, unknown>) => ({
+    ...s,
+    file_size: Number(s.file_size),
+  }));
 
   ctx.response.body = {
     ...albumResult[0],
