@@ -1,0 +1,56 @@
+name: local_music
+description: "Local Music - A music player for your local library"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # UI
+  cupertino_icons: ^1.0.8
+  google_fonts: ^6.2.1
+  cached_network_image: ^3.4.1
+  flutter_svg: ^2.0.16
+
+  # State Management
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+
+  # Routing
+  go_router: ^14.8.1
+
+  # Network
+  dio: ^5.7.0
+
+  # Audio
+  just_audio: ^0.9.43
+  audio_service: ^0.18.17
+  audio_session: ^0.1.25
+  flutter_soloud: ^4.0.11
+
+  # Storage
+  shared_preferences: ^2.5.3
+  path_provider: ^2.1.5
+
+  # Utilities
+  intl: ^0.20.2
+  collection: ^1.19.1
+  equatable: ^2.0.7
+  json_annotation: ^4.9.0
+  logger: ^2.5.0
+  url_launcher: ^6.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  build_runner: ^2.4.15
+  json_serializable: ^6.9.4
+  riverpod_generator: ^2.6.2
+
+flutter:
+  uses-material-design: true

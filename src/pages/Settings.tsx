@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuthStore } from "../stores/authStore";
 import { config as configApi } from "../services/api";
+import { songs as songsApi } from "../services/api";
 import { usePlayerStore } from "../stores/playerStore";
 import { EQ_PRESETS } from "../services/equalizer";
 import { Button } from "../components/ui/Button";
@@ -10,13 +11,11 @@ import {
   FolderX,
   Plus,
   Save,
-  Server,
   Settings,
   Trash2,
   Activity,
 } from "lucide-react";
 import type { Config } from "../types";
-import { API_BASE, setApiBaseUrl, isApiConfigured } from "../config";
 
 export function SettingsPage() {
   const { isAdmin } = useAuthStore();
@@ -32,7 +31,6 @@ export function SettingsPage() {
     type: "success" | "error";
     text: string;
   } | null>(null);
-  const [serverUrl, setServerUrl] = useState(API_BASE);
   const [analyzeStatus, setAnalyzeStatus] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
@@ -40,13 +38,6 @@ export function SettingsPage() {
     eqEnabled, eqPreset, loudnessNormEnabled,
     setEqEnabled, setEqPreset, setLoudnessNormEnabled,
   } = usePlayerStore();
-
-  // Detect if running on native platform (Capacitor)
-  const isNativePlatform = (() => {
-    const cap = (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor;
-    return typeof cap?.isNativePlatform === 'function' && cap.isNativePlatform();
-  })();
-
   useEffect(() => {
     fetchConfig();
   }, []);
@@ -196,42 +187,6 @@ export function SettingsPage() {
           }`}
         >
           {message.text}
-        </div>
-      )}
-
-      {/* Server URL Configuration - visible on native platforms */}
-      {isNativePlatform && (
-        <div className="mb-8 backdrop-blur-md bg-background/60 border border-white/10 p-6 rounded-lg">
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <Server className="h-5 w-5" />
-            服务器地址
-          </h2>
-          <p className="text-muted-foreground text-sm mb-4">
-            输入你的 Local Music 服务器地址（例如 http://192.168.1.100:8000）
-          </p>
-          <div className="flex gap-2">
-            <Input
-              placeholder="http://192.168.1.100:8000"
-              value={serverUrl}
-              onChange={(e) => setServerUrl(e.target.value)}
-              className="flex-1"
-            />
-            <Button
-              onClick={() => {
-                if (serverUrl.trim()) {
-                  setApiBaseUrl(serverUrl.trim());
-                }
-              }}
-            >
-              <Save className="h-4 w-4 mr-2" />
-              保存
-            </Button>
-          </div>
-          {!isApiConfigured() && (
-            <p className="text-red-400 text-sm mt-2">
-              服务器地址未配置，请输入你的服务器地址。
-            </p>
-          )}
         </div>
       )}
 

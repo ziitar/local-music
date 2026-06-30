@@ -20,6 +20,7 @@ import {
 } from "../utils/index.ts";
 import { getCueCover, getOrCreateCover, saveCoverFromData, clearCoverCache } from "../utils/coverExtractor.ts";
 import { calculateFileHash } from "../utils/hash.ts";
+import { analyzeLoudness } from "../utils/loudnessAnalyzer.ts";
 const SUPPORTED_FORMATS = [
   ".mp3",
   ".flac",
@@ -839,6 +840,32 @@ export async function insertSong(metadata: SongMetadata): Promise<boolean> {
     `;
 
     // Link artists to song via junction table
+    // Analyze loudness for the inserted song (non-blocking, best-effort)
+    if (result.length > 0) {
+      const songId = result[0].id;
+      // Use the actual audio file path (for CUE tracks, use the source file)
+      const audioFilePath = metadata.isCueTrack
+        ? metadata.filePath.split("#track-")[0]
+        : metadata.filePath;
+      try {
+        const loudness = await analyzeLoudness(audioFilePath);
+        if (loudness) {
+          await sql`
+            UPDATE songs
+            SET integrated_loudness = ${loudness.integratedLoudness},
+                true_peak = ${loudness.truePeak}
+            WHERE id = ${songId}
+          `;
+          console.log(
+            `Loudness for "${metadata.title}": ${loudness.integratedLoudness} LUFS, ${loudness.truePeak} dBTP`,
+          );
+        }
+      } catch (err) {
+        // Don't fail the insert if loudness analysis fails
+        console.warn(`Loudness analysis failed for "${metadata.title}":`, err);
+      }
+    }
+
     if (result.length > 0 && artists.length > 0) {
       await linkSongArtists(result[0].id, artists);
     }

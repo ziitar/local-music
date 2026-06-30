@@ -1,8 +1,8 @@
 /**
  * Media Session API integration for lock screen / notification controls.
  *
- * Works on both web (Chrome media controls) and Capacitor Android
- * (system notification shade + lock screen controls).
+ * Works on web browsers that support the Media Session API
+ * (Chrome, Edge, Firefox — system notification shade + lock screen controls).
  */
 
 import { API_BASE } from '../config';

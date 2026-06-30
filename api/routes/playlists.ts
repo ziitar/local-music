@@ -108,6 +108,7 @@ router.get("/api/playlists/:id", async (ctx) => {
            ), 'Unknown Artist') as artist,
            COALESCE(al.title, 'Unknown Album') as album,
            s.duration, s.quality, s.format, s.cover_image,
+           s.integrated_loudness, s.true_peak,
            ps.position, ps.added_at
     FROM playlist_songs ps
     JOIN songs s ON ps.song_id = s.id
