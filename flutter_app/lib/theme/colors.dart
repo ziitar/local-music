@@ -27,9 +27,4 @@ class AppColors {
 
   // Divider
   static const Color divider = Color(0xFF333333);
-
-  // Visualizer warm colors
-  static const Color waveLow = Color(0xFFFF8C42);   // warm orange
-  static const Color waveMid = Color(0xFFFFD166);    // warm yellow
-  static const Color waveHigh = Color(0xFFE63946);   // warm red
 }

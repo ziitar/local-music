@@ -5,6 +5,7 @@ import '../theme/colors.dart';
 import '../theme/text_styles.dart';
 import '../models/album.dart';
 import '../providers/providers.dart';
+import '../widgets/common/cover_image.dart';
 
 class AlbumsPage extends ConsumerStatefulWidget {
   const AlbumsPage({super.key});
@@ -61,14 +62,12 @@ class _AlbumsPageState extends ConsumerState<AlbumsPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: AppColors.surfaceVariant,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Center(
-                                child: Icon(Icons.album, color: AppColors.textTertiary, size: 48),
-                              ),
+                            child: CoverImage(
+                              imageUrl: album.coverImage != null
+                                  ? '${ref.read(apiClientProvider).baseUrl}${album.coverImage}'
+                                  : null,
+                              size: double.infinity,
+                              iconSize: 48,
                             ),
                           ),
                           const SizedBox(height: 8),

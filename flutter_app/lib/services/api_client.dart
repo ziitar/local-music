@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 import 'package:logger/logger.dart';
 import '../models/auth_response.dart';
 import '../models/user.dart';
@@ -26,11 +28,23 @@ class ApiClient {
       headers: {'Content-Type': 'application/json'},
     ));
 
+    // Accept self-signed / untrusted certificates for self-hosted HTTPS servers.
+    _dio.httpClientAdapter = IOHttpClientAdapter(
+      createHttpClient: () {
+        final client = HttpClient();
+        client.badCertificateCallback = (cert, host, port) => true;
+        return client;
+      },
+    );
+
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: _onRequest,
       onError: _onError,
     ));
   }
+
+  /// Current server base URL (e.g. "http://192.168.1.100:8000").
+  String get baseUrl => _dio.options.baseUrl;
 
   /// Update base URL (called after user configures server address).
   void updateBaseUrl(String url) {

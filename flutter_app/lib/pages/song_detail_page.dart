@@ -7,11 +7,11 @@ import '../models/lyrics.dart';
 import '../providers/player_provider.dart';
 import '../providers/providers.dart';
 import '../utils/format_duration.dart';
+import '../widgets/common/cover_image.dart';
 import '../widgets/lyrics/lrc_parser.dart';
-import '../widgets/visualizer/wave_visualizer.dart';
 
 /// View mode for the song detail page.
-enum _ViewMode { cover, visualizer, lyrics }
+enum _ViewMode { cover, lyrics }
 
 class SongDetailPage extends ConsumerStatefulWidget {
   final int id;
@@ -27,20 +27,32 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
   bool _loading = true;
   _ViewMode _viewMode = _ViewMode.cover;
 
+  // Lyrics auto-scroll
+  final ScrollController _lyricsScrollController = ScrollController();
+  int _activeLyricIndex = -1;
+  bool _userScrolling = false;
+
   @override
   void initState() {
     super.initState();
-    _load();
+    _load(widget.id);
   }
 
-  Future<void> _load() async {
+  Future<void> _load(int songId) async {
+    setState(() {
+      _loading = true;
+      _song = null;
+      _lyrics = [];
+    });
     try {
       final api = ref.read(apiClientProvider);
-      final song = await api.getSong(widget.id);
+      final song = await api.getSong(songId);
+      if (!mounted) return;
       setState(() => _song = song);
 
       // Load lyrics
       final lyricsResp = await api.getLyrics(song.title, song.artist);
+      if (!mounted) return;
       if (lyricsResp.lrc != null) {
         setState(() => _lyrics = LrcParser.parse(
           lyricsResp.lrc!,
@@ -49,48 +61,73 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
       }
       setState(() => _loading = false);
     } catch (_) {
+      if (!mounted) return;
       setState(() => _loading = false);
     }
+  }
+
+  @override
+  void dispose() {
+    _lyricsScrollController.dispose();
+    super.dispose();
+  }
+
+  int _findActiveLyricIndex(Duration position) {
+    for (int i = _lyrics.length - 1; i >= 0; i--) {
+      if (position >= _lyrics[i].timestamp) return i;
+    }
+    return -1;
+  }
+
+  void _scrollToActiveLyric(int index) {
+    if (_userScrolling) return;
+    if (!_lyricsScrollController.hasClients) return;
+    // Estimate each item height ~56px (padding 8*2 + text line ~40)
+    const itemHeight = 56.0;
+    final viewportHeight = _lyricsScrollController.position.viewportDimension;
+    // Top/bottom padding = half viewport to allow first/last lyrics to center
+    final centerPadding = viewportHeight / 2;
+    final targetOffset =
+        centerPadding + index * itemHeight - (viewportHeight / 2) + itemHeight / 2;
+    _lyricsScrollController.animateTo(
+      targetOffset.clamp(0.0, _lyricsScrollController.position.maxScrollExtent),
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
   }
 
   void _onSwipe(DragEndDetails details) {
     if (details.primaryVelocity == null) return;
 
-    if (details.primaryVelocity! < 0) {
-      // Swipe left: cover → visualizer → lyrics
-      setState(() {
-        switch (_viewMode) {
-          case _ViewMode.cover:
-            _viewMode = _ViewMode.visualizer;
-            break;
-          case _ViewMode.visualizer:
-            _viewMode = _ViewMode.lyrics;
-            break;
-          case _ViewMode.lyrics:
-            break;
-        }
-      });
-    } else {
-      // Swipe right: lyrics → visualizer → cover
-      setState(() {
-        switch (_viewMode) {
-          case _ViewMode.lyrics:
-            _viewMode = _ViewMode.visualizer;
-            break;
-          case _ViewMode.visualizer:
-            _viewMode = _ViewMode.cover;
-            break;
-          case _ViewMode.cover:
-            break;
-        }
-      });
-    }
+    setState(() {
+      if (details.primaryVelocity! < 0) {
+        // Swipe left: cover → lyrics
+        _viewMode = _ViewMode.lyrics;
+      } else {
+        // Swipe right: lyrics → cover
+        _viewMode = _ViewMode.cover;
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final player = ref.watch(playerProvider);
-    final song = _song ?? player.currentSong;
+    final playerSong = player.currentSong;
+
+    // When the player advances to a different song, reload details for it.
+    if (playerSong != null && _song != null && playerSong.id != _song!.id) {
+      // Schedule reload after the current build frame completes.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _load(playerSong.id);
+      });
+    }
+
+    // Prefer the API-enriched _song if it matches the player's current song;
+    // otherwise fall back to player.currentSong (which updates immediately).
+    final song = (_song != null && playerSong != null && _song!.id == playerSong.id)
+        ? _song
+        : (playerSong ?? _song);
 
     return Scaffold(
       appBar: AppBar(
@@ -103,34 +140,57 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
           ? const Center(child: CircularProgressIndicator())
           : song == null
               ? const Center(child: Text('加载失败'))
-              : Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        AppColors.primaryDark.withValues(alpha: 0.3),
-                        AppColors.background,
-                      ],
+              : Stack(
+                  children: [
+                    // Layer 1: Blurred album cover background
+                    if (song.coverImage != null)
+                      Positioned.fill(
+                        child: Image.network(
+                          '${ref.read(apiClientProvider).baseUrl}${song.coverImage}',
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                        ),
+                      ),
+                    // Layer 2: Blur + dark overlay for readability
+                    Positioned.fill(
+                      child: Container(
+                        color: AppColors.background.withValues(alpha: 0.75),
+                      ),
                     ),
-                  ),
-                  child: SafeArea(
-                    child: Column(
-                      children: [
-                        // View indicator dots
-                        _buildViewIndicator(),
-                        // Main content area
-                        Expanded(
-                          child: GestureDetector(
-                            onHorizontalDragEnd: _onSwipe,
-                            child: _buildCurrentView(song, player),
+                    // Layer 3: Gradient tint
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              AppColors.primaryDark.withValues(alpha: 0.3),
+                              AppColors.background.withValues(alpha: 0.5),
+                            ],
                           ),
                         ),
-                        // Controls
-                        _buildControls(song, player),
-                      ],
+                      ),
                     ),
-                  ),
+                    // Layer 4: Main content
+                    SafeArea(
+                      child: Column(
+                        children: [
+                          // View indicator dots
+                          _buildViewIndicator(),
+                          // Main content area
+                          Expanded(
+                            child: GestureDetector(
+                              onHorizontalDragEnd: _onSwipe,
+                              child: _buildCurrentView(song, player),
+                            ),
+                          ),
+                          // Controls
+                          _buildControls(song, player),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
     );
   }
@@ -142,8 +202,6 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           _buildDot(_ViewMode.cover),
-          const SizedBox(width: 8),
-          _buildDot(_ViewMode.visualizer),
           const SizedBox(width: 8),
           _buildDot(_ViewMode.lyrics),
         ],
@@ -170,8 +228,6 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
     switch (_viewMode) {
       case _ViewMode.cover:
         return _buildCoverView(song, player);
-      case _ViewMode.visualizer:
-        return _buildVisualizerView();
       case _ViewMode.lyrics:
         return _buildLyricsView();
     }
@@ -185,10 +241,7 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
         children: [
           // Album cover
           Container(
-            width: 280,
-            height: 280,
             decoration: BoxDecoration(
-              color: AppColors.surfaceVariant,
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
@@ -198,8 +251,13 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
                 ),
               ],
             ),
-            child: const Center(
-              child: Icon(Icons.music_note, color: AppColors.textTertiary, size: 80),
+            child: CoverImage(
+              imageUrl: song.coverImage != null
+                  ? '${ref.read(apiClientProvider).baseUrl}${song.coverImage}'
+                  : null,
+              size: 280,
+              iconSize: 80,
+              borderRadius: BorderRadius.circular(16),
             ),
           ),
           const SizedBox(height: 32),
@@ -219,65 +277,87 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
     );
   }
 
-  Widget _buildVisualizerView() {
-    return const Stack(
-      children: [
-        // Background gradient
-        SizedBox.expand(),
-        // Visualizer
-        WaveVisualizer(),
-      ],
-    );
-  }
-
   Widget _buildLyricsView() {
     if (_lyrics.isEmpty) {
       return const Center(child: Text('暂无歌词', style: AppTextStyles.bodyMedium));
     }
 
     final player = ref.watch(playerProvider);
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 32),
-      itemCount: _lyrics.length,
-      itemBuilder: (context, index) {
-        final line = _lyrics[index];
-        final isActive = player.position >= line.timestamp &&
-            (index == _lyrics.length - 1 ||
-                player.position < _lyrics[index + 1].timestamp);
+    final activeIndex = _findActiveLyricIndex(player.position);
 
-        return GestureDetector(
-          onTap: () => ref.read(playerProvider.notifier).seek(line.timestamp),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Column(
-              children: [
-                Text(
-                  line.text,
-                  style: TextStyle(
-                    fontSize: isActive ? 20 : 16,
-                    fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                    color: isActive
-                        ? AppColors.textPrimary
-                        : AppColors.textTertiary,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                if (line.translatedText != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      line.translatedText!,
-                      style: TextStyle(
-                        fontSize: isActive ? 14 : 12,
-                        color: isActive
-                            ? AppColors.textSecondary
-                            : AppColors.textTertiary,
+    // Auto-scroll when active line changes (use addPostFrameCallback to avoid build-during-build)
+    if (activeIndex != _activeLyricIndex && activeIndex >= 0) {
+      _activeLyricIndex = activeIndex;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToActiveLyric(activeIndex);
+      });
+    }
+
+    // Use LayoutBuilder to get viewport height for proper center padding
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final centerPadding = constraints.maxHeight / 2;
+
+        return NotificationListener<ScrollNotification>(
+          onNotification: (notification) {
+            if (notification is ScrollStartNotification &&
+                notification.dragDetails != null) {
+              _userScrolling = true;
+            } else if (notification is ScrollEndNotification) {
+              // Resume auto-scroll after 3 seconds of no manual scrolling
+              Future.delayed(const Duration(seconds: 3), () {
+                if (mounted) setState(() => _userScrolling = false);
+              });
+            }
+            return false;
+          },
+          child: ListView.builder(
+            controller: _lyricsScrollController,
+            padding: EdgeInsets.symmetric(
+                vertical: centerPadding, horizontal: 32),
+            itemCount: _lyrics.length,
+            itemBuilder: (context, index) {
+              final line = _lyrics[index];
+              final isActive = index == activeIndex;
+
+              return GestureDetector(
+                onTap: () =>
+                    ref.read(playerProvider.notifier).seek(line.timestamp),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Column(
+                    children: [
+                      Text(
+                        line.text,
+                        style: TextStyle(
+                          fontSize: isActive ? 20 : 16,
+                          fontWeight:
+                              isActive ? FontWeight.bold : FontWeight.normal,
+                          color: isActive
+                              ? AppColors.textPrimary
+                              : AppColors.textTertiary,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                      textAlign: TextAlign.center,
-                    ),
+                      if (line.translatedText != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            line.translatedText!,
+                            style: TextStyle(
+                              fontSize: isActive ? 14 : 12,
+                              color: isActive
+                                  ? AppColors.textSecondary
+                                  : AppColors.textTertiary,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                    ],
                   ),
-              ],
-            ),
+                ),
+              );
+            },
           ),
         );
       },
@@ -296,8 +376,9 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
               Expanded(
                 child: Slider(
                   value: player.duration.inMilliseconds > 0
-                      ? player.position.inMilliseconds /
-                          player.duration.inMilliseconds
+                      ? (player.position.inMilliseconds /
+                              player.duration.inMilliseconds)
+                          .clamp(0.0, 1.0)
                       : 0.0,
                   onChanged: (v) {
                     final pos = Duration(

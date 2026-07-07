@@ -23,6 +23,11 @@ final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/',
     redirect: (context, state) {
+      // While restoring session from persisted tokens, block all navigation.
+      if (auth.isRestoring) {
+        return state.matchedLocation == '/login' ? null : '/login';
+      }
+
       final isLoggedIn = auth.isAuthenticated;
       final isLoginRoute = state.matchedLocation == '/login' ||
           state.matchedLocation == '/register';

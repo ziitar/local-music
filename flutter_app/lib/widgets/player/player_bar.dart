@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../theme/colors.dart';
 import '../../providers/player_provider.dart';
+import '../../providers/providers.dart';
 import '../../utils/format_duration.dart';
+import '../common/cover_image.dart';
 
 /// Compact player bar shown at the bottom of the app shell.
 class PlayerBar extends ConsumerWidget {
@@ -49,15 +51,14 @@ class PlayerBar extends ConsumerWidget {
             // Song info + controls
             Row(
               children: [
-                // Cover placeholder
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceVariant,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: const Icon(Icons.music_note, color: AppColors.textTertiary, size: 20),
+                // Cover image
+                CoverImage(
+                  imageUrl: song.coverImage != null
+                      ? '${ref.read(apiClientProvider).baseUrl}${song.coverImage}'
+                      : null,
+                  size: 40,
+                  iconSize: 20,
+                  borderRadius: BorderRadius.circular(4),
                 ),
                 const SizedBox(width: 10),
                 // Title & artist

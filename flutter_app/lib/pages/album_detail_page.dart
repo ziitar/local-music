@@ -5,6 +5,7 @@ import '../theme/text_styles.dart';
 import '../models/album.dart';
 import '../providers/player_provider.dart';
 import '../providers/providers.dart';
+import '../widgets/common/cover_image.dart';
 import '../widgets/common/song_list_tile.dart';
 
 class AlbumDetailPage extends ConsumerStatefulWidget {
@@ -53,16 +54,12 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage> {
                       padding: const EdgeInsets.all(24),
                       child: Column(
                         children: [
-                          Container(
-                            width: 200,
-                            height: 200,
-                            decoration: BoxDecoration(
-                              color: AppColors.surfaceVariant,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Center(
-                              child: Icon(Icons.album, color: AppColors.textTertiary, size: 80),
-                            ),
+                          CoverImage(
+                            imageUrl: _album!.coverImage != null
+                                ? '${ref.read(apiClientProvider).baseUrl}${_album!.coverImage}'
+                                : null,
+                            size: 200,
+                            iconSize: 80,
                           ),
                           const SizedBox(height: 16),
                           Text(_album!.title, style: AppTextStyles.headlineMedium, textAlign: TextAlign.center),

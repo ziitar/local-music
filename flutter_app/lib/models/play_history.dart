@@ -1,4 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
+import 'song.dart';
 
 part 'play_history.g.dart';
 
@@ -31,4 +32,15 @@ class PlayHistory {
   factory PlayHistory.fromJson(Map<String, dynamic> json) =>
       _$PlayHistoryFromJson(json);
   Map<String, dynamic> toJson() => _$PlayHistoryToJson(this);
+
+  /// Convert to [Song] for playback.
+  Song toSong() => Song(
+        id: songId,
+        title: title,
+        artist: artist,
+        album: album,
+        duration: duration,
+        quality: quality,
+        format: format,
+      );
 }

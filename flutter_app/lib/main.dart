@@ -4,9 +4,9 @@ import 'package:audio_service/audio_service.dart';
 import 'package:dio/dio.dart';
 import 'app.dart';
 import 'services/storage_service.dart';
-import 'services/api_client.dart';
 import 'services/audio_handler.dart';
 import 'services/cache_service.dart';
+import 'services/equalizer_service.dart';
 import 'providers/providers.dart';
 
 late AudioPlayerHandler audioHandler;
@@ -18,9 +18,14 @@ void main() async {
   final storage = StorageService();
   await storage.init();
 
-  // Initialize audio handler (system media controls)
+  // Initialize equalizer (must be before audio handler for Android pipeline)
+  final eqService = EqualizerService();
+  await eqService.init();
+  final pipeline = eqService.getAudioPipeline();
+
+  // Initialize audio handler with equalizer pipeline
   audioHandler = await AudioService.init<AudioPlayerHandler>(
-    builder: () => AudioPlayerHandler(),
+    builder: () => AudioPlayerHandler(pipeline: pipeline),
     config: const AudioServiceConfig(
       androidNotificationChannelId: 'com.localmusic.audio',
       androidNotificationChannelName: 'Local Music',
@@ -30,11 +35,6 @@ void main() async {
   );
 
   // Initialize cache service
-  final api = ApiClient(storage);
-  final serverUrl = storage.serverUrl;
-  if (serverUrl != null && serverUrl.isNotEmpty) {
-    api.updateBaseUrl(serverUrl);
-  }
   final cache = CacheService(storage, Dio());
   await cache.init();
 

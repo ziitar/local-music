@@ -5,6 +5,7 @@ import '../services/api_client.dart';
 import '../services/audio_handler.dart';
 import '../services/cache_service.dart';
 import '../services/loudness_service.dart';
+import '../services/equalizer_service.dart';
 import 'providers.dart';
 import 'settings_provider.dart';
 
@@ -156,7 +157,9 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
     );
 
     try {
-      final artUri = song.coverImage;
+      final artUri = song.coverImage != null
+          ? '${_api.baseUrl}${song.coverImage}'
+          : null;
 
       // Check local cache first
       final cachedPath = _cache.getCachedPath(song.id);
@@ -290,6 +293,24 @@ final playerProvider = StateNotifierProvider<PlayerNotifier, PlayerState>((ref) 
       notifier.setLoudnessNormalization(next.loudnessNormalizationEnabled);
     }
   });
+
+  // Sync equalizer settings from playback settings
+  final eqService = EqualizerService();
+  ref.listen<PlaybackSettings>(playbackSettingsProvider, (prev, next) {
+    if (prev?.eqEnabled != next.eqEnabled) {
+      eqService.setEnabled(next.eqEnabled);
+    }
+    if (prev?.eqPresetName != next.eqPresetName) {
+      eqService.applyPreset(next.eqPresetName);
+    }
+  });
+
+  // Apply persisted EQ settings on startup
+  final initialSettings = ref.read(playbackSettingsProvider);
+  eqService.applyPreset(initialSettings.eqPresetName);
+  if (initialSettings.eqEnabled) {
+    eqService.setEnabled(true);
+  }
 
   return notifier;
 });

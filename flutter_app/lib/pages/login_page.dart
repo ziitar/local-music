@@ -58,6 +58,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
 
+    // Show loading while restoring session from persisted tokens.
+    if (auth.isRestoring) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(

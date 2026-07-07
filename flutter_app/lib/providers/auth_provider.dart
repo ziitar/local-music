@@ -7,16 +7,18 @@ import 'providers.dart';
 class AuthState {
   final User? user;
   final bool isLoading;
+  final bool isRestoring;
   final String? error;
 
-  const AuthState({this.user, this.isLoading = false, this.error});
+  const AuthState({this.user, this.isLoading = false, this.isRestoring = false, this.error});
 
   bool get isAuthenticated => user != null;
 
-  AuthState copyWith({User? user, bool? isLoading, String? error}) {
+  AuthState copyWith({User? user, bool? isLoading, bool? isRestoring, String? error}) {
     return AuthState(
       user: user ?? this.user,
       isLoading: isLoading ?? this.isLoading,
+      isRestoring: isRestoring ?? this.isRestoring,
       error: error,
     );
   }
@@ -26,7 +28,19 @@ class AuthState {
 class AuthNotifier extends StateNotifier<AuthState> {
   final ApiClient _api;
 
-  AuthNotifier(this._api) : super(const AuthState());
+  AuthNotifier(this._api) : super(const AuthState(isRestoring: true)) {
+    _restoreSession();
+  }
+
+  /// Restore session from persisted tokens on app startup.
+  Future<void> _restoreSession() async {
+    try {
+      final user = await _api.me();
+      state = AuthState(user: user);
+    } catch (_) {
+      state = const AuthState();
+    }
+  }
 
   Future<bool> checkAuth() async {
     try {

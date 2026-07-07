@@ -17,7 +17,8 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
   Stream<void> get skipToNextStream => _skipNextController.stream;
   Stream<void> get skipToPreviousStream => _skipPreviousController.stream;
 
-  AudioPlayerHandler() : _player = AudioPlayer() {
+  AudioPlayerHandler({AudioPipeline? pipeline})
+      : _player = AudioPlayer(audioPipeline: pipeline) {
     _init();
   }
 
