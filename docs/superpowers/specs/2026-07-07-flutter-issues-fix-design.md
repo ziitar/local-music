@@ -95,15 +95,18 @@ class _PlaylistsPageState extends ConsumerState<PlaylistsPage> {
 /// Usage:
 /// ```dart
 /// PaginatedListView<Song>(
-///   fetchItems: (page, search) => api.listSongs(page: page, search: search),
+///   fetchItems: (page, search) async {
+///     final response = await api.listSongs(page: page, search: search);
+///     return (items: response.songs, pagination: response.pagination);
+///   },
 ///   itemBuilder: (context, song, index) => SongListTile(song: song),
 ///   showSearch: true,
 /// )
 /// ```
 class PaginatedListView<T> extends StatefulWidget {
   /// Fetches items for a given page and optional search query.
-  /// Returns a PaginatedResponse containing items and pagination info.
-  final Future<PaginatedResponse<T>> Function(int page, String? search) fetchItems;
+  /// Returns a Record containing items list and pagination info.
+  final Future<({List<T> items, Pagination pagination})> Function(int page, String? search) fetchItems;
   
   /// Builds a single item widget (for ListView layout).
   final Widget Function(BuildContext context, T item, int index) itemBuilder;
@@ -139,7 +142,13 @@ class PaginatedListView<T> extends StatefulWidget {
   
   /// Whether the list should shrink wrap.
   final bool shrinkWrap;
-  
+
+  /// Extracts a stable key for each item.
+  final String Function(T item)? keyExtractor;
+
+  /// Widget to show when loading fails.
+  final Widget? errorWidget;
+
   const PaginatedListView({
     super.key,
     required this.fetchItems,
@@ -154,6 +163,8 @@ class PaginatedListView<T> extends StatefulWidget {
     this.padding,
     this.physics,
     this.shrinkWrap = false,
+    this.keyExtractor,
+    this.errorWidget,
   });
 }
 
@@ -162,6 +173,8 @@ class _PaginatedListViewState<T> extends State<PaginatedListView<T>> {
   Pagination? _pagination;
   bool _loading = true;
   bool _loadingMore = false;
+  bool _hasError = false;
+  String? _errorMessage;
   int _currentPage = 1;
   String? _search;
   final _searchController = TextEditingController();
@@ -182,21 +195,23 @@ class _PaginatedListViewState<T> extends State<PaginatedListView<T>> {
   }
   
   void _onScroll() {
-    if (_scrollController.position.pixels >= 
+    if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
       _loadMore();
     }
   }
-  
+
   Future<void> _loadItems({bool refresh = false}) async {
     if (refresh) {
       setState(() {
         _items.clear();
         _currentPage = 1;
         _loading = true;
+        _hasError = false;
+        _errorMessage = null;
       });
     }
-    
+
     try {
       final response = await widget.fetchItems(_currentPage, _search);
       setState(() {
@@ -206,21 +221,29 @@ class _PaginatedListViewState<T> extends State<PaginatedListView<T>> {
         _items.addAll(response.items);
         _pagination = response.pagination;
         _loading = false;
+        _hasError = false;
       });
     } catch (e) {
-      setState(() => _loading = false);
+      setState(() {
+        _loading = false;
+        _hasError = true;
+        _errorMessage = e.toString();
+      });
     }
   }
-  
+
+  bool _isLoadingMoreGuard = false;
+
   Future<void> _loadMore() async {
-    if (_loadingMore || _pagination == null || 
+    if (_isLoadingMoreGuard || _loadingMore || _pagination == null ||
         _currentPage >= _pagination!.totalPages) {
       return;
     }
-    
+
+    _isLoadingMoreGuard = true;
     setState(() => _loadingMore = true);
     _currentPage++;
-    
+
     try {
       final response = await widget.fetchItems(_currentPage, _search);
       setState(() {
@@ -230,6 +253,9 @@ class _PaginatedListViewState<T> extends State<PaginatedListView<T>> {
       });
     } catch (e) {
       setState(() => _loadingMore = false);
+      _currentPage--; // Revert page on error
+    } finally {
+      _isLoadingMoreGuard = false;
     }
   }
   
@@ -241,11 +267,31 @@ class _PaginatedListViewState<T> extends State<PaginatedListView<T>> {
         Expanded(
           child: _loading
               ? const Center(child: CircularProgressIndicator())
-              : _items.isEmpty
-                  ? widget.emptyWidget ?? const Center(child: Text('暂无数据'))
-                  : _buildList(),
+              : _hasError && _items.isEmpty
+                  ? _buildErrorState()
+                  : _items.isEmpty
+                      ? widget.emptyWidget ?? const Center(child: Text('暂无数据'))
+                      : _buildList(),
         ),
       ],
+    );
+  }
+
+  Widget _buildErrorState() {
+    return widget.errorWidget ?? Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.error_outline, size: 48, color: Colors.grey),
+          const SizedBox(height: 16),
+          Text(_errorMessage ?? '加载失败', style: const TextStyle(color: Colors.grey)),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: () => _loadItems(refresh: true),
+            child: const Text('重试'),
+          ),
+        ],
+      ),
     );
   }
   
@@ -286,7 +332,7 @@ class _PaginatedListViewState<T> extends State<PaginatedListView<T>> {
       return GridView.builder(
         controller: _scrollController,
         padding: widget.padding ?? const EdgeInsets.all(16),
-        gridDelegate: widget.gridDelegate ?? 
+        gridDelegate: widget.gridDelegate ??
             const SliverGridDelegateWithMaxCrossAxisExtent(
               maxCrossAxisExtent: 180,
               childAspectRatio: 0.75,
@@ -298,7 +344,11 @@ class _PaginatedListViewState<T> extends State<PaginatedListView<T>> {
           if (index == _items.length) {
             return const Center(child: CircularProgressIndicator());
           }
-          return widget.gridItemBuilder!(context, _items[index], index);
+          final itemData = _items[index];
+          return KeyedSubtree(
+            key: widget.keyExtractor != null ? ValueKey(widget.keyExtractor!(itemData)) : null,
+            child: widget.gridItemBuilder!(context, itemData, index),
+          );
         },
       );
     }
@@ -318,31 +368,24 @@ class _PaginatedListViewState<T> extends State<PaginatedListView<T>> {
             ),
           );
         }
-        
-        final item = widget.itemBuilder(context, _items[index], index);
-        
+
+        final itemData = _items[index];
+        final item = widget.itemBuilder(context, itemData, index);
+
         if (widget.showDivider && index < _items.length - 1) {
           return Column(
+            key: widget.keyExtractor != null ? ValueKey(widget.keyExtractor!(itemData)) : null,
             children: [item, const Divider(height: 1)],
           );
         }
-        
-        return item;
+
+        return KeyedSubtree(
+          key: widget.keyExtractor != null ? ValueKey(widget.keyExtractor!(itemData)) : null,
+          child: item,
+        );
       },
     );
   }
-}
-```
-
-**Supporting Model:**
-```dart
-// flutter_app/lib/models/pagination.dart
-@JsonSerializable()
-class PaginatedResponse<T> {
-  final List<T> items;
-  final Pagination pagination;
-  
-  const PaginatedResponse({required this.items, required this.pagination});
 }
 ```
 
@@ -363,7 +406,7 @@ class PaginatedResponse<T> {
 
 **Changes in settings_page.dart:**
 ```dart
-// BEFORE (incorrect - direct service call)
+// BEFORE (incorrect - direct service calls)
 SwitchListTile(
   value: settings.eqEnabled,
   onChanged: (value) {
@@ -372,11 +415,28 @@ SwitchListTile(
   },
 )
 
+// EQ Preset selector - BEFORE
+ChoiceChip(
+  selected: isSelected,
+  onSelected: (_) {
+    ref.read(playbackSettingsProvider.notifier).setEqPreset(preset.name);
+    EqualizerService().applyPreset(preset.name);  // REMOVE THIS
+  },
+)
+
 // AFTER (correct - only update provider)
 SwitchListTile(
   value: settings.eqEnabled,
   onChanged: (value) {
     ref.read(playbackSettingsProvider.notifier).setEqEnabled(value);
+  },
+)
+
+// EQ Preset selector - AFTER
+ChoiceChip(
+  selected: isSelected,
+  onSelected: (_) {
+    ref.read(playbackSettingsProvider.notifier).setEqPreset(preset.name);
   },
 )
 ```
@@ -525,45 +585,61 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
   final ApiClient _api;
   final CacheService _cache;
   final LoudnessService _loudness;
-  final Ref _ref;  // NEW - need ref to read settings
 
-  PlayerNotifier(this._handler, this._api, this._cache, this._loudness, this._ref)
+  PlayerNotifier(this._handler, this._api, this._cache, this._loudness)
       : super(const PlayerState()) {
     _init();
-    _loadPersistedSettings();  // NEW
-  }
-
-  void _loadPersistedSettings() {  // NEW
-    final settings = _ref.read(playbackSettingsProvider);
-    state = state.copyWith(
-      playMode: PlayMode.values.firstWhere(
-        (e) => e.name == settings.playMode,
-        orElse: () => PlayMode.sequential,
-      ),
-      quality: settings.quality,
-    );
   }
 
   // Update setPlayMode to persist
   void setPlayMode(PlayMode mode) {
     state = state.copyWith(playMode: mode);
-    _ref.read(playbackSettingsProvider.notifier).setPlayMode(mode.name);
   }
 
   // Update setQuality to persist
   void setQuality(String? quality) {
     state = state.copyWith(quality: quality);
-    _ref.read(playbackSettingsProvider.notifier).setQuality(quality);
+  }
+
+  // Update cyclePlayMode to use setPlayMode for persistence
+  void cyclePlayMode() {
+    const modes = PlayMode.values;
+    final nextIndex = (modes.indexOf(state.playMode) + 1) % modes.length;
+    setPlayMode(modes[nextIndex]);
   }
 }
 
-// Update provider to pass ref
+// Update provider to handle persistence and load initial settings
 final playerProvider = StateNotifierProvider<PlayerNotifier, PlayerState>((ref) {
   final handler = ref.watch(audioHandlerProvider);
   final api = ref.watch(apiClientProvider);
   final cache = ref.watch(cacheServiceProvider);
   final loudness = ref.watch(loudnessServiceProvider);
-  return PlayerNotifier(handler, api, cache, loudness, ref);  // Pass ref
+  final notifier = PlayerNotifier(handler, api, cache, loudness);
+
+  // Load persisted settings on startup
+  final initialSettings = ref.read(playbackSettingsProvider);
+  notifier.setPlayMode(PlayMode.values.firstWhere(
+    (e) => e.name == initialSettings.playMode,
+    orElse: () => PlayMode.sequential,
+  ));
+  notifier.setQuality(initialSettings.quality);
+
+  // Persist playMode changes
+  ref.listen<PlayMode>(playerProvider.select((s) => s.playMode), (prev, next) {
+    if (prev != next) {
+      ref.read(playbackSettingsProvider.notifier).setPlayMode(next.name);
+    }
+  });
+
+  // Persist quality changes
+  ref.listen<String?>(playerProvider.select((s) => s.quality), (prev, next) {
+    if (prev != next) {
+      ref.read(playbackSettingsProvider.notifier).setQuality(next);
+    }
+  });
+
+  return notifier;
 });
 ```
 
@@ -682,9 +758,95 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage> {
 }
 ```
 
-**Similar changes for:**
-- `artist_detail_page.dart`
-- `album_detail_page.dart`
+**Changes in artist_detail_page.dart:**
+```dart
+class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
+  // ... existing code
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(_artist?.name ?? '歌手'),
+        actions: [
+          if (_artist?.albums != null && _artist!.albums!.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.search),
+              onPressed: () => _showSearch(),
+            ),
+        ],
+      ),
+      // ... existing body
+    );
+  }
+
+  void _showSearch() {
+    // Flatten songs from all albums
+    final allSongs = <Song>[];
+    for (final album in _artist!.albums!) {
+      if (album.songs != null) {
+        allSongs.addAll(album.songs!);
+      }
+    }
+
+    showSearch(
+      context: context,
+      delegate: SongSearchDelegate(
+        songs: allSongs,
+        onSelected: (song) {
+          final index = allSongs.indexOf(song);
+          ref.read(playerProvider.notifier).playSong(
+            song,
+            queue: allSongs,
+            index: index,
+          );
+        },
+      ),
+    );
+  }
+}
+```
+
+**Changes in album_detail_page.dart:**
+```dart
+class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage> {
+  // ... existing code
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(_album?.title ?? '专辑'),
+        actions: [
+          if (_album?.songs != null && _album!.songs!.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.search),
+              onPressed: () => _showSearch(),
+            ),
+        ],
+      ),
+      // ... existing body
+    );
+  }
+
+  void _showSearch() {
+    showSearch(
+      context: context,
+      delegate: SongSearchDelegate(
+        songs: _album!.songs!,
+        onSelected: (song) {
+          final index = _album!.songs!.indexOf(song);
+          ref.read(playerProvider.notifier).playSong(
+            song,
+            queue: _album!.songs!,
+            index: index,
+          );
+        },
+      ),
+    );
+  }
+}
+```
 
 ---
 
