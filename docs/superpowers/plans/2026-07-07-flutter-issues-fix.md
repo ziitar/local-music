@@ -78,7 +78,7 @@ Future<void> _load() async {
 }
 ```
 
-- [ ] **Step 3: Run the app and check console output**
+- [ ] **Step 3: Run the app and check console output** (requires human judgment)
 
 Run: `cd flutter_app && flutter run`
 Expected: Navigate to playlists page and see Logger output in console
@@ -118,17 +118,11 @@ git commit -m "fix: debug and fix playlists not showing"
 
 - [ ] **Step 1: Add new storage keys**
 
+Add these 2 new keys to `AppConfig` (existing keys `storageKeyEqEnabled`, `storageKeyEqPreset`, `storageKeyLoudnessNormEnabled` are already present):
+
 ```dart
-class AppConfig {
-  // ... existing keys
-  
-  // Settings persistence keys
-  static const String storageKeyEqEnabled = 'eq_enabled';
-  static const String storageKeyEqPreset = 'eq_preset';
-  static const String storageKeyLoudnessNormEnabled = 'loudness_norm_enabled';
-  static const String storageKeyPlayMode = 'play_mode';
-  static const String storageKeyQuality = 'quality';
-}
+static const String storageKeyPlayMode = 'play_mode';
+static const String storageKeyQuality = 'quality';
 ```
 
 - [ ] **Step 2: Verify existing code still compiles**
@@ -311,6 +305,17 @@ final playerProvider = StateNotifierProvider<PlayerNotifier, PlayerState>((ref) 
   if (initialSettings.eqEnabled) {
     eqService.setEnabled(true);
   }
+
+  // Reload current song when quality changes
+  ref.listen<String?>(playerProvider.select((s) => s.quality), (prev, next) {
+    if (prev != next && notifier.state.currentSong != null && notifier.state.isPlaying) {
+      notifier.playSong(
+        notifier.state.currentSong!,
+        queue: notifier.state.queue,
+        index: notifier.state.currentIndex,
+      );
+    }
+  });
 
   return notifier;
 });
@@ -1051,6 +1056,7 @@ Widget build(BuildContext context) {
             ),
           )
         : PaginatedListView<Song>(
+            key: ValueKey(_query), // Force new state when query changes
             fetchItems: (page, search) async {
               final api = ref.read(apiClientProvider);
               final result = await api.listSongs(page: page, limit: 50, search: _query);
@@ -1154,7 +1160,7 @@ class SongSearchDelegate extends SearchDelegate<Song?> {
       final queryLower = query.toLowerCase();
       return song.title.toLowerCase().contains(queryLower) ||
              song.artist.toLowerCase().contains(queryLower) ||
-             (song.album?.toLowerCase().contains(queryLower) ?? false);
+             song.album.toLowerCase().contains(queryLower);
     }).toList();
 
     if (filtered.isEmpty) {
