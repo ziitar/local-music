@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../theme/colors.dart';
 import '../theme/text_styles.dart';
 import '../models/playlist.dart';
 import '../providers/player_provider.dart';
 import '../providers/providers.dart';
 import '../widgets/common/song_list_tile.dart';
+import '../widgets/common/song_search_delegate.dart';
+import '../widgets/common/cover_image.dart';
 
 class PlaylistDetailPage extends ConsumerStatefulWidget {
   final int id;
@@ -38,10 +39,75 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage> {
     }
   }
 
+  void _showSearch() {
+    showSearch(
+      context: context,
+      delegate: SongSearchDelegate(
+        songs: _playlist!.songs!,
+        onSelected: (song) {
+          final index = _playlist!.songs!.indexOf(song);
+          ref.read(playerProvider.notifier).playSong(
+                song,
+                queue: _playlist!.songs!,
+                index: index,
+              );
+        },
+      ),
+    );
+  }
+
+  Future<void> _showRemoveDialog(int songId, String songTitle) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('移除歌曲'),
+        content: Text('确定要将「$songTitle」从歌单中移除吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('移除', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        final api = ref.read(apiClientProvider);
+        await api.removeSongFromPlaylist(_playlist!.id, songId);
+        _load(); // Refresh the playlist
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('已从歌单中移除「$songTitle」')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('移除失败: $e')),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(_playlist?.name ?? '歌单')),
+      appBar: AppBar(
+        title: Text(_playlist?.name ?? '歌单'),
+        actions: [
+          if (_playlist?.songs != null && _playlist!.songs!.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.search),
+              onPressed: () => _showSearch(),
+            ),
+        ],
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _playlist == null
@@ -53,16 +119,12 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage> {
                       padding: const EdgeInsets.all(24),
                       child: Column(
                         children: [
-                          Container(
-                            width: 200,
-                            height: 200,
-                            decoration: BoxDecoration(
-                              color: AppColors.surfaceVariant,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Center(
-                              child: Icon(Icons.playlist_play, color: AppColors.primary, size: 80),
-                            ),
+                          CoverImage(
+                            imageUrl: _playlist!.coverImage != null
+                                ? '${ref.read(apiClientProvider).baseUrl}${_playlist!.coverImage}'
+                                : null,
+                            size: 200,
+                            iconSize: 80,
                           ),
                           const SizedBox(height: 16),
                           Text(_playlist!.name, style: AppTextStyles.headlineMedium, textAlign: TextAlign.center),
@@ -107,6 +169,7 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage> {
                                 index: entry.key,
                               );
                             },
+                            onLongPress: () => _showRemoveDialog(song.id, song.title),
                           );
                         }),
                       ),

@@ -54,10 +54,12 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
       final lyricsResp = await api.getLyrics(song.title, song.artist);
       if (!mounted) return;
       if (lyricsResp.lrc != null) {
-        setState(() => _lyrics = LrcParser.parse(
-          lyricsResp.lrc!,
-          translatedLrc: lyricsResp.translatedLrc,
-        ));
+        setState(
+          () => _lyrics = LrcParser.parse(
+            lyricsResp.lrc!,
+            translatedLrc: lyricsResp.translatedLrc,
+          ),
+        );
       }
       setState(() => _loading = false);
     } catch (_) {
@@ -88,7 +90,10 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
     // Top/bottom padding = half viewport to allow first/last lyrics to center
     final centerPadding = viewportHeight / 2;
     final targetOffset =
-        centerPadding + index * itemHeight - (viewportHeight / 2) + itemHeight / 2;
+        centerPadding +
+        index * itemHeight -
+        (viewportHeight / 2) +
+        itemHeight / 2;
     _lyricsScrollController.animateTo(
       targetOffset.clamp(0.0, _lyricsScrollController.position.maxScrollExtent),
       duration: const Duration(milliseconds: 300),
@@ -125,7 +130,8 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
 
     // Prefer the API-enriched _song if it matches the player's current song;
     // otherwise fall back to player.currentSong (which updates immediately).
-    final song = (_song != null && playerSong != null && _song!.id == playerSong.id)
+    final song =
+        (_song != null && playerSong != null && _song!.id == playerSong.id)
         ? _song
         : (playerSong ?? _song);
 
@@ -139,59 +145,59 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : song == null
-              ? const Center(child: Text('加载失败'))
-              : Stack(
-                  children: [
-                    // Layer 1: Blurred album cover background
-                    if (song.coverImage != null)
-                      Positioned.fill(
-                        child: Image.network(
-                          '${ref.read(apiClientProvider).baseUrl}${song.coverImage}',
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                        ),
-                      ),
-                    // Layer 2: Blur + dark overlay for readability
-                    Positioned.fill(
-                      child: Container(
-                        color: AppColors.background.withValues(alpha: 0.75),
-                      ),
+          ? const Center(child: Text('加载失败'))
+          : Stack(
+              children: [
+                // Layer 1: Blurred album cover background
+                if (song.coverImage != null)
+                  Positioned.fill(
+                    child: Image.network(
+                      '${ref.read(apiClientProvider).baseUrl}${song.coverImage}',
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => const SizedBox.shrink(),
                     ),
-                    // Layer 3: Gradient tint
-                    Positioned.fill(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              AppColors.primaryDark.withValues(alpha: 0.3),
-                              AppColors.background.withValues(alpha: 0.5),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Layer 4: Main content
-                    SafeArea(
-                      child: Column(
-                        children: [
-                          // View indicator dots
-                          _buildViewIndicator(),
-                          // Main content area
-                          Expanded(
-                            child: GestureDetector(
-                              onHorizontalDragEnd: _onSwipe,
-                              child: _buildCurrentView(song, player),
-                            ),
-                          ),
-                          // Controls
-                          _buildControls(song, player),
+                  ),
+                // Layer 2: Blur + dark overlay for readability
+                Positioned.fill(
+                  child: Container(
+                    color: AppColors.background.withValues(alpha: 0.75),
+                  ),
+                ),
+                // Layer 3: Gradient tint
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          AppColors.primaryDark.withValues(alpha: 0.3),
+                          AppColors.background.withValues(alpha: 0.5),
                         ],
                       ),
                     ),
-                  ],
+                  ),
                 ),
+                // Layer 4: Main content
+                SafeArea(
+                  child: Column(
+                    children: [
+                      // View indicator dots
+                      _buildViewIndicator(),
+                      // Main content area
+                      Expanded(
+                        child: GestureDetector(
+                          onHorizontalDragEnd: _onSwipe,
+                          child: _buildCurrentView(song, player),
+                        ),
+                      ),
+                      // Controls
+                      _buildControls(song, player),
+                    ],
+                  ),
+                ),
+              ],
+            ),
     );
   }
 
@@ -217,7 +223,9 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
         width: isActive ? 24 : 8,
         height: 8,
         decoration: BoxDecoration(
-          color: isActive ? AppColors.primary : AppColors.textTertiary.withValues(alpha: 0.3),
+          color: isActive
+              ? AppColors.primary
+              : AppColors.textTertiary.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(4),
         ),
       ),
@@ -314,7 +322,9 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
           child: ListView.builder(
             controller: _lyricsScrollController,
             padding: EdgeInsets.symmetric(
-                vertical: centerPadding, horizontal: 32),
+              vertical: centerPadding,
+              horizontal: 32,
+            ),
             itemCount: _lyrics.length,
             itemBuilder: (context, index) {
               final line = _lyrics[index];
@@ -331,8 +341,9 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
                         line.text,
                         style: TextStyle(
                           fontSize: isActive ? 20 : 16,
-                          fontWeight:
-                              isActive ? FontWeight.bold : FontWeight.normal,
+                          fontWeight: isActive
+                              ? FontWeight.bold
+                              : FontWeight.normal,
                           color: isActive
                               ? AppColors.textPrimary
                               : AppColors.textTertiary,
@@ -372,24 +383,30 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
           // Progress
           Row(
             children: [
-              Text(formatDuration(player.position), style: AppTextStyles.bodySmall),
+              Text(
+                formatDuration(player.position),
+                style: AppTextStyles.bodySmall,
+              ),
               Expanded(
                 child: Slider(
                   value: player.duration.inMilliseconds > 0
                       ? (player.position.inMilliseconds /
-                              player.duration.inMilliseconds)
-                          .clamp(0.0, 1.0)
+                                player.duration.inMilliseconds)
+                            .clamp(0.0, 1.0)
                       : 0.0,
                   onChanged: (v) {
                     final pos = Duration(
-                      milliseconds:
-                          (v * player.duration.inMilliseconds).round(),
+                      milliseconds: (v * player.duration.inMilliseconds)
+                          .round(),
                     );
                     ref.read(playerProvider.notifier).seek(pos);
                   },
                 ),
               ),
-              Text(formatDuration(player.duration), style: AppTextStyles.bodySmall),
+              Text(
+                formatDuration(player.duration),
+                style: AppTextStyles.bodySmall,
+              ),
             ],
           ),
           // Buttons

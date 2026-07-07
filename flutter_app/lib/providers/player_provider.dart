@@ -99,7 +99,15 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
     });
 
     _player.durationStream.listen((dur) {
-      if (dur != null) state = state.copyWith(duration: dur);
+      // For streaming URLs, just_audio may return null or invalid duration.
+      // Prefer database duration (set in playSong) over stream duration.
+      if (dur != null && dur > Duration.zero) {
+        // Only update if we don't have a valid database duration already
+        final songDuration = state.currentSong?.duration ?? 0;
+        if (songDuration <= 0) {
+          state = state.copyWith(duration: dur);
+        }
+      }
     });
 
     _player.playerStateStream.listen((playerState) {
@@ -149,11 +157,18 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
     // Compute loudness multiplier
     final loudnessMult = _loudness.computeVolumeMultiplier(song);
 
+    // Set duration from database immediately (streaming URLs don't provide proper duration)
+    final songDuration = song.duration > 0
+        ? Duration(seconds: song.duration)
+        : Duration.zero;
+
     state = state.copyWith(
       currentSong: song,
       queue: newQueue,
       currentIndex: newIndex >= 0 ? newIndex : 0,
       loudnessMultiplier: loudnessMult,
+      duration: songDuration,
+      position: Duration.zero,
     );
 
     try {
@@ -233,7 +248,7 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
   void cyclePlayMode() {
     const modes = PlayMode.values;
     final nextIndex = (modes.indexOf(state.playMode) + 1) % modes.length;
-    state = state.copyWith(playMode: modes[nextIndex]);
+    setPlayMode(modes[nextIndex]);
   }
 
   Future<void> setVolume(double volume) async {
@@ -243,7 +258,16 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
   }
 
   void setQuality(String? quality) {
+    final oldQuality = state.quality;
     state = state.copyWith(quality: quality);
+    // Reload current song if quality changed and something is playing
+    if (oldQuality != quality && state.currentSong != null && state.isPlaying) {
+      playSong(
+        state.currentSong!,
+        queue: state.queue,
+        index: state.currentIndex,
+      );
+    }
   }
 
   /// Update loudness normalization toggle and re-apply volume.
@@ -287,6 +311,14 @@ final playerProvider = StateNotifierProvider<PlayerNotifier, PlayerState>((ref) 
   final loudness = ref.watch(loudnessServiceProvider);
   final notifier = PlayerNotifier(handler, api, cache, loudness);
 
+  // Load persisted settings on startup
+  final initialSettings = ref.read(playbackSettingsProvider);
+  notifier.setPlayMode(PlayMode.values.firstWhere(
+    (e) => e.name == initialSettings.playMode,
+    orElse: () => PlayMode.sequential,
+  ));
+  notifier.setQuality(initialSettings.quality);
+
   // Sync loudness normalization toggle from playback settings
   ref.listen<PlaybackSettings>(playbackSettingsProvider, (prev, next) {
     if (prev?.loudnessNormalizationEnabled != next.loudnessNormalizationEnabled) {
@@ -306,11 +338,17 @@ final playerProvider = StateNotifierProvider<PlayerNotifier, PlayerState>((ref) 
   });
 
   // Apply persisted EQ settings on startup
-  final initialSettings = ref.read(playbackSettingsProvider);
   eqService.applyPreset(initialSettings.eqPresetName);
   if (initialSettings.eqEnabled) {
     eqService.setEnabled(true);
   }
+
+  // Reload current song when quality changes via settings
+  ref.listen<PlaybackSettings>(playbackSettingsProvider, (prev, next) {
+    if (prev?.quality != next.quality) {
+      notifier.setQuality(next.quality);
+    }
+  });
 
   return notifier;
 });

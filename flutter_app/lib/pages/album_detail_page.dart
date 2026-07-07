@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../theme/colors.dart';
 import '../theme/text_styles.dart';
 import '../models/album.dart';
 import '../providers/player_provider.dart';
 import '../providers/providers.dart';
 import '../widgets/common/cover_image.dart';
 import '../widgets/common/song_list_tile.dart';
+import '../widgets/common/song_search_delegate.dart';
 
 class AlbumDetailPage extends ConsumerStatefulWidget {
   final int id;
@@ -39,10 +39,36 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage> {
     }
   }
 
+  void _showSearch() {
+    showSearch(
+      context: context,
+      delegate: SongSearchDelegate(
+        songs: _album!.songs!,
+        onSelected: (song) {
+          final index = _album!.songs!.indexOf(song);
+          ref.read(playerProvider.notifier).playSong(
+                song,
+                queue: _album!.songs!,
+                index: index,
+              );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(_album?.title ?? '专辑')),
+      appBar: AppBar(
+        title: Text(_album?.title ?? '专辑'),
+        actions: [
+          if (_album?.songs != null && _album!.songs!.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.search),
+              onPressed: () => _showSearch(),
+            ),
+        ],
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _album == null

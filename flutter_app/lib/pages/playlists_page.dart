@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:logger/logger.dart';
 import '../theme/colors.dart';
 import '../theme/text_styles.dart';
 import '../models/playlist.dart';
 import '../providers/providers.dart';
+import '../widgets/common/cover_image.dart';
 
 class PlaylistsPage extends ConsumerStatefulWidget {
   const PlaylistsPage({super.key});
@@ -14,6 +16,7 @@ class PlaylistsPage extends ConsumerStatefulWidget {
 }
 
 class _PlaylistsPageState extends ConsumerState<PlaylistsPage> {
+  final _logger = Logger();
   List<Playlist> _playlists = [];
   bool _loading = true;
 
@@ -26,12 +29,21 @@ class _PlaylistsPageState extends ConsumerState<PlaylistsPage> {
   Future<void> _load() async {
     try {
       final api = ref.read(apiClientProvider);
+      _logger.d('Fetching playlists from ${api.baseUrl}/api/playlists');
+
       final playlists = await api.listPlaylists();
+      _logger.d('Playlists fetched: ${playlists.length} items');
+
+      if (playlists.isEmpty) {
+        _logger.w('Playlists list is empty - check if user has playlists');
+      }
+
       setState(() {
         _playlists = playlists;
         _loading = false;
       });
-    } catch (_) {
+    } catch (e, stackTrace) {
+      _logger.e('Failed to load playlists', error: e, stackTrace: stackTrace);
       setState(() => _loading = false);
     }
   }
@@ -101,14 +113,12 @@ class _PlaylistsPageState extends ConsumerState<PlaylistsPage> {
                   itemBuilder: (context, index) {
                     final playlist = _playlists[index];
                     return ListTile(
-                      leading: Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceVariant,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: const Icon(Icons.playlist_play, color: AppColors.primary),
+                      leading: CoverImage(
+                        imageUrl: playlist.coverImage != null
+                            ? '${ref.read(apiClientProvider).baseUrl}${playlist.coverImage}'
+                            : null,
+                        size: 48,
+                        iconSize: 24,
                       ),
                       title: Text(playlist.name),
                       subtitle: Text('${playlist.songCount ?? 0} 首歌曲'),

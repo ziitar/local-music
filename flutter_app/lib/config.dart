@@ -21,4 +21,6 @@ class AppConfig {
   static const String storageKeyEqEnabled = 'eq_enabled';
   static const String storageKeyEqPreset = 'eq_preset';
   static const String storageKeyLoudnessNormEnabled = 'loudness_norm_enabled';
+  static const String storageKeyPlayMode = 'play_mode';
+  static const String storageKeyQuality = 'quality';
 }

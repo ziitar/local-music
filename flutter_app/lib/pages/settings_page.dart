@@ -5,10 +5,8 @@ import '../theme/colors.dart';
 import '../theme/text_styles.dart';
 import '../models/eq_preset.dart';
 import '../providers/auth_provider.dart';
-import '../providers/player_provider.dart';
 import '../providers/providers.dart';
 import '../providers/settings_provider.dart';
-import '../services/equalizer_service.dart';
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -16,7 +14,6 @@ class SettingsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authProvider);
-    final player = ref.watch(playerProvider);
     final storage = ref.watch(storageServiceProvider);
     final settings = ref.watch(playbackSettingsProvider);
 
@@ -59,7 +56,7 @@ class SettingsPage extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.high_quality),
             title: const Text('音质'),
-            subtitle: Text(player.quality ?? '原始'),
+            subtitle: Text(settings.quality ?? '原始'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _showQualityPicker(context, ref),
           ),
@@ -73,7 +70,6 @@ class SettingsPage extends ConsumerWidget {
             activeThumbColor: AppColors.primary,
             onChanged: (value) {
               ref.read(playbackSettingsProvider.notifier).setEqEnabled(value);
-              EqualizerService().setEnabled(value);
             },
           ),
 
@@ -96,7 +92,6 @@ class SettingsPage extends ConsumerWidget {
                         onSelected: (_) {
                           ref.read(playbackSettingsProvider.notifier)
                               .setEqPreset(preset.name);
-                          EqualizerService().applyPreset(preset.name);
                         },
                       ),
                     );
@@ -165,7 +160,7 @@ class SettingsPage extends ConsumerWidget {
 class _QualitySheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final current = ref.watch(playerProvider).quality;
+    final current = ref.watch(playbackSettingsProvider).quality;
 
     return SafeArea(
       child: Column(
@@ -192,7 +187,7 @@ class _QualitySheet extends ConsumerWidget {
       title: Text(label),
       trailing: isSelected ? const Icon(Icons.check, color: AppColors.primary) : null,
       onTap: () {
-        ref.read(playerProvider.notifier).setQuality(value);
+        ref.read(playbackSettingsProvider.notifier).setQuality(value);
         Navigator.pop(context);
       },
     );

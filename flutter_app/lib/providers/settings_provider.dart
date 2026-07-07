@@ -8,23 +8,31 @@ class PlaybackSettings {
   final bool eqEnabled;
   final String eqPresetName;
   final bool loudnessNormalizationEnabled;
+  final String playMode;
+  final String? quality;
 
   const PlaybackSettings({
     this.eqEnabled = false,
     this.eqPresetName = 'flat',
     this.loudnessNormalizationEnabled = true,
+    this.playMode = 'sequential',
+    this.quality,
   });
 
   PlaybackSettings copyWith({
     bool? eqEnabled,
     String? eqPresetName,
     bool? loudnessNormalizationEnabled,
+    String? playMode,
+    String? quality,
   }) {
     return PlaybackSettings(
       eqEnabled: eqEnabled ?? this.eqEnabled,
       eqPresetName: eqPresetName ?? this.eqPresetName,
       loudnessNormalizationEnabled:
           loudnessNormalizationEnabled ?? this.loudnessNormalizationEnabled,
+      playMode: playMode ?? this.playMode,
+      quality: quality ?? this.quality,
     );
   }
 }
@@ -45,6 +53,9 @@ class PlaybackSettingsNotifier extends StateNotifier<PlaybackSettings> {
       loudnessNormalizationEnabled:
           _storage.prefs.getBool(AppConfig.storageKeyLoudnessNormEnabled) ??
               true,
+      playMode:
+          _storage.prefs.getString(AppConfig.storageKeyPlayMode) ?? 'sequential',
+      quality: _storage.prefs.getString(AppConfig.storageKeyQuality),
     );
   }
 
@@ -61,6 +72,20 @@ class PlaybackSettingsNotifier extends StateNotifier<PlaybackSettings> {
   void setLoudnessNormalization(bool value) {
     state = state.copyWith(loudnessNormalizationEnabled: value);
     _storage.prefs.setBool(AppConfig.storageKeyLoudnessNormEnabled, value);
+  }
+
+  void setPlayMode(String mode) {
+    state = state.copyWith(playMode: mode);
+    _storage.prefs.setString(AppConfig.storageKeyPlayMode, mode);
+  }
+
+  void setQuality(String? quality) {
+    state = state.copyWith(quality: quality);
+    if (quality != null) {
+      _storage.prefs.setString(AppConfig.storageKeyQuality, quality);
+    } else {
+      _storage.prefs.remove(AppConfig.storageKeyQuality);
+    }
   }
 }
 

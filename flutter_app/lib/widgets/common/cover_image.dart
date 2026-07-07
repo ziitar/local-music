@@ -29,7 +29,7 @@ class CoverImage extends StatelessWidget {
             ? Image.network(
                 imageUrl!,
                 fit: fit,
-                errorBuilder: (_, __, ___) => _placeholder(),
+                errorBuilder: (_, _, _) => _placeholder(),
               )
             : _placeholder(),
       ),
@@ -40,7 +40,11 @@ class CoverImage extends StatelessWidget {
     return Container(
       color: AppColors.surfaceVariant,
       child: Center(
-        child: Icon(Icons.music_note, color: AppColors.textTertiary, size: iconSize),
+        child: Icon(
+          Icons.music_note,
+          color: AppColors.textTertiary,
+          size: iconSize,
+        ),
       ),
     );
   }

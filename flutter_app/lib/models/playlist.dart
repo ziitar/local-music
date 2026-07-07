@@ -7,7 +7,7 @@ part 'playlist.g.dart';
 class Playlist {
   final int id;
   @JsonKey(name: 'user_id')
-  final int userId;
+  final int? userId;
   final String name;
   final String? description;
   @JsonKey(name: 'created_at')
@@ -22,7 +22,7 @@ class Playlist {
 
   const Playlist({
     required this.id,
-    required this.userId,
+    this.userId,
     required this.name,
     this.description,
     required this.createdAt,

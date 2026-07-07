@@ -5,7 +5,9 @@ import '../theme/text_styles.dart';
 import '../models/song.dart';
 import '../providers/player_provider.dart';
 import '../providers/providers.dart';
+import '../widgets/common/paginated_list_view.dart';
 import '../widgets/common/song_list_tile.dart';
+import '../widgets/common/add_to_playlist_sheet.dart';
 
 class SearchPage extends ConsumerStatefulWidget {
   const SearchPage({super.key});
@@ -16,32 +18,12 @@ class SearchPage extends ConsumerStatefulWidget {
 
 class _SearchPageState extends ConsumerState<SearchPage> {
   final _controller = TextEditingController();
-  List<Song> _results = [];
-  bool _loading = false;
   String _query = '';
 
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
-  }
-
-  Future<void> _search(String query) async {
-    if (query.isEmpty) return;
-    setState(() {
-      _loading = true;
-      _query = query;
-    });
-    try {
-      final api = ref.read(apiClientProvider);
-      final result = await api.listSongs(search: query, limit: 50);
-      setState(() {
-        _results = result.songs;
-        _loading = false;
-      });
-    } catch (_) {
-      setState(() => _loading = false);
-    }
   }
 
   @override
@@ -57,45 +39,60 @@ class _SearchPageState extends ConsumerState<SearchPage> {
             hintStyle: TextStyle(color: AppColors.textTertiary),
           ),
           style: const TextStyle(color: AppColors.textPrimary),
-          onSubmitted: _search,
+          onSubmitted: (v) {
+            if (v.isNotEmpty) {
+              setState(() => _query = v);
+            }
+          },
           onChanged: (v) {
-            if (v.isEmpty) setState(() => _results = []);
+            if (v.isEmpty) setState(() => _query = '');
           },
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
-            onPressed: () => _search(_controller.text),
+            onPressed: () {
+              if (_controller.text.isNotEmpty) {
+                setState(() => _query = _controller.text);
+              }
+            },
           ),
         ],
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _results.isEmpty
-              ? Center(
-                  child: Text(
-                    _query.isEmpty ? '输入关键词搜索' : '未找到结果',
-                    style: AppTextStyles.bodyMedium,
-                  ),
-                )
-              : ListView.builder(
-                  itemCount: _results.length,
-                  itemBuilder: (context, index) {
-                    final song = _results[index];
-                    return SongListTile(
-                      title: song.title,
-                      artist: song.artist,
-                      duration: song.duration,
-                      onTap: () {
-                        ref.read(playerProvider.notifier).playSong(
+      body: _query.isEmpty
+          ? Center(
+              child: Text(
+                '输入关键词搜索',
+                style: AppTextStyles.bodyMedium,
+              ),
+            )
+          : PaginatedListView<Song>(
+              key: ValueKey(_query), // Force new state when query changes
+              fetchItems: (page, search) async {
+                final api = ref.read(apiClientProvider);
+                final result =
+                    await api.listSongs(page: page, limit: 50, search: _query);
+                return (items: result.songs, pagination: result.pagination);
+              },
+              itemBuilder: (context, song, index) {
+                return SongListTile(
+                  title: song.title,
+                  artist: song.artist,
+                  duration: song.duration,
+                  onTap: () {
+                    ref.read(playerProvider.notifier).playSong(
                           song,
-                          queue: _results,
+                          queue: [],
                           index: index,
                         );
-                      },
-                    );
                   },
-                ),
+                  onLongPress: () {
+                    AddToPlaylistSheet.show(context, ref, songId: song.id);
+                  },
+                );
+              },
+              keyExtractor: (song) => song.id.toString(),
+            ),
     );
   }
 }

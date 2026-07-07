@@ -6,6 +6,7 @@ import '../models/song.dart';
 import '../providers/player_provider.dart';
 import '../providers/providers.dart';
 import '../widgets/common/song_list_tile.dart';
+import '../widgets/common/song_search_delegate.dart';
 
 class ArtistDetailPage extends ConsumerStatefulWidget {
   final int id;
@@ -38,10 +39,44 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
     }
   }
 
+  void _showSearch() {
+    // Flatten songs from all albums
+    final allSongs = <Song>[];
+    for (final album in _artist!.albums!) {
+      if (album.songs != null) {
+        allSongs.addAll(album.songs!);
+      }
+    }
+
+    showSearch(
+      context: context,
+      delegate: SongSearchDelegate(
+        songs: allSongs,
+        onSelected: (song) {
+          final index = allSongs.indexOf(song);
+          ref.read(playerProvider.notifier).playSong(
+                song,
+                queue: allSongs,
+                index: index,
+              );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(_artist?.name ?? '歌手')),
+      appBar: AppBar(
+        title: Text(_artist?.name ?? '歌手'),
+        actions: [
+          if (_artist?.albums != null && _artist!.albums!.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.search),
+              onPressed: () => _showSearch(),
+            ),
+        ],
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _artist == null

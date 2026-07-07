@@ -91,8 +91,17 @@ router.get("/api/playlists/:id", async (ctx) => {
   }
 
   const playlist = await sql`
-    SELECT id, user_id, name, description, created_at, updated_at
-    FROM playlists WHERE id = ${id} AND user_id = ${userId}
+    SELECT p.id, p.user_id, p.name, p.description, p.created_at, p.updated_at,
+           (
+             SELECT s2.cover_image
+             FROM playlist_songs ps2
+             JOIN songs s2 ON ps2.song_id = s2.id
+             WHERE ps2.playlist_id = p.id
+             ORDER BY ps2.added_at DESC
+             LIMIT 1
+           ) as cover_image
+    FROM playlists p
+    WHERE p.id = ${id} AND p.user_id = ${userId}
   `;
 
   if (playlist.length === 0) {
