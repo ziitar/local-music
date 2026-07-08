@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../theme/colors.dart';
 import '../theme/text_styles.dart';
 import '../models/artist.dart';
 import '../models/song.dart';
@@ -66,6 +67,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Scaffold(
       appBar: AppBar(
         title: Text(_artist?.name ?? '歌手'),
@@ -90,23 +92,23 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
                         children: [
                           CircleAvatar(
                             radius: 48,
-                            backgroundColor: Colors.orange.shade200,
+                            backgroundColor: colors.primaryLight,
                             child: Text(
                               _artist!.name.isNotEmpty ? _artist!.name[0] : '?',
                               style: const TextStyle(fontSize: 36, color: Colors.white),
                             ),
                           ),
                           const SizedBox(height: 16),
-                          Text(_artist!.name, style: AppTextStyles.headlineMedium),
+                          Text(_artist!.name, style: AppTextStyles.headlineMedium(context)),
                           if (_artist!.alias != null)
                             Padding(
                               padding: const EdgeInsets.only(top: 4),
-                              child: Text(_artist!.alias!, style: AppTextStyles.bodyMedium),
+                              child: Text(_artist!.alias!, style: AppTextStyles.bodyMedium(context)),
                             ),
                           const SizedBox(height: 8),
                           Text(
                             '${_artist!.songCount ?? 0} 首歌曲 · ${_artist!.albumCount ?? 0} 张专辑',
-                            style: AppTextStyles.bodySmall,
+                            style: AppTextStyles.bodySmall(context),
                           ),
                         ],
                       ),

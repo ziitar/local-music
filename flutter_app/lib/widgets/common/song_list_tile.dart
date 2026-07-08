@@ -25,32 +25,33 @@ class SongListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return ListTile(
       leading: SizedBox(
         width: 32,
         child: trackNo != null
             ? Text(
                 '$trackNo',
-                style: const TextStyle(color: AppColors.textTertiary, fontSize: 14),
+                style: TextStyle(color: colors.textTertiary, fontSize: 14),
                 textAlign: TextAlign.center,
               )
-            : const Icon(Icons.music_note, color: AppColors.textTertiary, size: 20),
+            : Icon(Icons.music_note, color: colors.textTertiary, size: 20),
       ),
       title: Text(
         title,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+        style: TextStyle(color: colors.textPrimary, fontSize: 14),
       ),
       subtitle: Text(
         artist,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+        style: TextStyle(color: colors.textSecondary, fontSize: 12),
       ),
       trailing: trailing ?? Text(
         formatDuration(Duration(seconds: duration)),
-        style: const TextStyle(color: AppColors.textTertiary, fontSize: 12),
+        style: TextStyle(color: colors.textTertiary, fontSize: 12),
       ),
       onTap: onTap,
       onLongPress: onLongPress,

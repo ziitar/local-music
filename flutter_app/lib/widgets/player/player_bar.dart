@@ -13,6 +13,7 @@ class PlayerBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colors = AppColors.of(context);
     final player = ref.watch(playerProvider);
     final song = player.currentSong;
 
@@ -21,7 +22,7 @@ class PlayerBar extends ConsumerWidget {
     return GestureDetector(
       onTap: () => context.push('/song/${song.id}'),
       child: Container(
-        color: AppColors.surfaceVariant,
+        color: colors.surfaceVariant,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -29,16 +30,17 @@ class PlayerBar extends ConsumerWidget {
             // Progress bar
             SliderTheme(
               data: SliderThemeData(
-                activeTrackColor: AppColors.primary,
-                inactiveTrackColor: AppColors.divider,
-                thumbColor: AppColors.primary,
+                activeTrackColor: colors.primary,
+                inactiveTrackColor: colors.divider,
+                thumbColor: colors.primary,
                 thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 4),
                 overlayShape: const RoundSliderOverlayShape(overlayRadius: 8),
                 trackHeight: 2,
               ),
               child: Slider(
                 value: player.duration.inMilliseconds > 0
-                    ? player.position.inMilliseconds / player.duration.inMilliseconds
+                    ? (player.position.inMilliseconds / player.duration.inMilliseconds)
+                        .clamp(0.0, 1.0)
                     : 0.0,
                 onChanged: (value) {
                   final pos = Duration(
@@ -69,8 +71,8 @@ class PlayerBar extends ConsumerWidget {
                     children: [
                       Text(
                         song.title,
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
+                        style: TextStyle(
+                          color: colors.textPrimary,
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
                         ),
@@ -79,8 +81,8 @@ class PlayerBar extends ConsumerWidget {
                       ),
                       Text(
                         song.artist,
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
+                        style: TextStyle(
+                          color: colors.textSecondary,
                           fontSize: 11,
                         ),
                         maxLines: 1,
@@ -92,20 +94,20 @@ class PlayerBar extends ConsumerWidget {
                 // Time
                 Text(
                   '${formatDuration(player.position)} / ${formatDuration(player.duration)}',
-                  style: const TextStyle(color: AppColors.textTertiary, fontSize: 11),
+                  style: TextStyle(color: colors.textTertiary, fontSize: 11),
                 ),
                 const SizedBox(width: 8),
                 // Play/pause
                 IconButton(
                   icon: Icon(
                     player.isPlaying ? Icons.pause : Icons.play_arrow,
-                    color: AppColors.textPrimary,
+                    color: colors.textPrimary,
                   ),
                   onPressed: () => ref.read(playerProvider.notifier).togglePlay(),
                 ),
                 // Next
                 IconButton(
-                  icon: const Icon(Icons.skip_next, color: AppColors.textPrimary),
+                  icon: Icon(Icons.skip_next, color: colors.textPrimary),
                   onPressed: () => ref.read(playerProvider.notifier).next(),
                 ),
               ],

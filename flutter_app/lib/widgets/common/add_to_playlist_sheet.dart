@@ -88,6 +88,7 @@ class _AddToPlaylistSheetState extends ConsumerState<AddToPlaylistSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -98,12 +99,12 @@ class _AddToPlaylistSheetState extends ConsumerState<AddToPlaylistSheet> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
-                  const Text(
+                  Text(
                     '添加到歌单',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
+                      color: colors.textPrimary,
                     ),
                   ),
                   const Spacer(),
@@ -121,10 +122,10 @@ class _AddToPlaylistSheetState extends ConsumerState<AddToPlaylistSheet> {
                 child: CircularProgressIndicator(),
               )
             else if (_playlists.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(32),
+              Padding(
+                padding: const EdgeInsets.all(32),
                 child: Text('暂无歌单，请先创建歌单',
-                    style: TextStyle(color: AppColors.textTertiary)),
+                    style: TextStyle(color: colors.textTertiary)),
               )
             else
               ConstrainedBox(
@@ -137,15 +138,15 @@ class _AddToPlaylistSheetState extends ConsumerState<AddToPlaylistSheet> {
                   itemBuilder: (context, index) {
                     final playlist = _playlists[index];
                     return ListTile(
-                      leading: const Icon(Icons.playlist_play,
-                          color: AppColors.primary),
+                      leading: Icon(Icons.playlist_play,
+                          color: colors.primary),
                       title: Text(playlist.name,
                           style:
-                              const TextStyle(color: AppColors.textPrimary)),
+                              TextStyle(color: colors.textPrimary)),
                       subtitle: Text(
                         '${playlist.songCount ?? 0} 首歌曲',
-                        style: const TextStyle(
-                            color: AppColors.textSecondary, fontSize: 12),
+                        style: TextStyle(
+                            color: colors.textSecondary, fontSize: 12),
                       ),
                       enabled: !_submitting,
                       onTap: () =>

@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../config.dart';
 import '../services/storage_service.dart';
@@ -94,4 +95,52 @@ final playbackSettingsProvider =
     StateNotifierProvider<PlaybackSettingsNotifier, PlaybackSettings>((ref) {
   final storage = ref.watch(storageServiceProvider);
   return PlaybackSettingsNotifier(storage);
+});
+
+/// Theme mode state with SharedPreferences persistence.
+class ThemeModeNotifier extends StateNotifier<ThemeMode> {
+  final StorageService _storage;
+
+  ThemeModeNotifier(this._storage) : super(ThemeMode.system) {
+    _load();
+  }
+
+  void _load() {
+    final saved = _storage.prefs.getString(AppConfig.storageKeyThemeMode);
+    switch (saved) {
+      case 'light':
+        state = ThemeMode.light;
+        break;
+      case 'dark':
+        state = ThemeMode.dark;
+        break;
+      default:
+        state = ThemeMode.system;
+        break;
+    }
+  }
+
+  void setThemeMode(ThemeMode mode) {
+    state = mode;
+    String value;
+    switch (mode) {
+      case ThemeMode.light:
+        value = 'light';
+        break;
+      case ThemeMode.dark:
+        value = 'dark';
+        break;
+      case ThemeMode.system:
+        value = 'system';
+        break;
+    }
+    _storage.prefs.setString(AppConfig.storageKeyThemeMode, value);
+  }
+}
+
+/// Theme mode provider.
+final themeModeProvider =
+    StateNotifierProvider<ThemeModeNotifier, ThemeMode>((ref) {
+  final storage = ref.watch(storageServiceProvider);
+  return ThemeModeNotifier(storage);
 });

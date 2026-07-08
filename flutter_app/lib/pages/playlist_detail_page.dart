@@ -127,16 +127,16 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage> {
                             iconSize: 80,
                           ),
                           const SizedBox(height: 16),
-                          Text(_playlist!.name, style: AppTextStyles.headlineMedium, textAlign: TextAlign.center),
+                          Text(_playlist!.name, style: AppTextStyles.headlineMedium(context), textAlign: TextAlign.center),
                           if (_playlist!.description != null && _playlist!.description!.isNotEmpty)
                             Padding(
                               padding: const EdgeInsets.only(top: 4),
-                              child: Text(_playlist!.description!, style: AppTextStyles.bodyMedium),
+                              child: Text(_playlist!.description!, style: AppTextStyles.bodyMedium(context)),
                             ),
                           const SizedBox(height: 4),
                           Text(
                             '${_playlist!.songCount ?? _playlist!.songs?.length ?? 0} 首歌曲',
-                            style: AppTextStyles.bodySmall,
+                            style: AppTextStyles.bodySmall(context),
                           ),
                           const SizedBox(height: 16),
                           FilledButton.icon(

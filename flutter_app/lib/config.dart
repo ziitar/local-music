@@ -23,4 +23,5 @@ class AppConfig {
   static const String storageKeyLoudnessNormEnabled = 'loudness_norm_enabled';
   static const String storageKeyPlayMode = 'play_mode';
   static const String storageKeyQuality = 'quality';
+  static const String storageKeyThemeMode = 'theme_mode';
 }

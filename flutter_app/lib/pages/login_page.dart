@@ -57,6 +57,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
+    final colors = AppColors.of(context);
 
     // Show loading while restoring session from persisted tokens.
     if (auth.isRestoring) {
@@ -76,9 +77,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.music_note, size: 64, color: AppColors.primary),
+                  Icon(Icons.music_note, size: 64, color: colors.primary),
                   const SizedBox(height: 16),
-                  const Text('Local Music', style: AppTextStyles.headlineMedium),
+                  Text('Local Music', style: AppTextStyles.headlineMedium(context)),
                   const SizedBox(height: 32),
                   TextFormField(
                     controller: _serverController,
@@ -117,7 +118,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   if (auth.error != null)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
-                      child: Text(auth.error!, style: const TextStyle(color: AppColors.error, fontSize: 13)),
+                      child: Text(auth.error!, style: TextStyle(color: colors.error, fontSize: 13)),
                     ),
                   const SizedBox(height: 24),
                   SizedBox(

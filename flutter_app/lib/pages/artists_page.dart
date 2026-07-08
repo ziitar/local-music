@@ -11,6 +11,7 @@ class ArtistsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colors = AppColors.of(context);
     return Scaffold(
       appBar: AppBar(title: const Text('歌手')),
       body: PaginatedListView<Artist>(
@@ -23,10 +24,10 @@ class ArtistsPage extends ConsumerWidget {
         itemBuilder: (context, artist, index) {
           return ListTile(
             leading: CircleAvatar(
-              backgroundColor: AppColors.surfaceVariant,
+              backgroundColor: colors.surfaceVariant,
               child: Text(
                 artist.name.isNotEmpty ? artist.name[0] : '?',
-                style: const TextStyle(color: AppColors.primary),
+                style: TextStyle(color: colors.primary),
               ),
             ),
             title: Text(artist.name),

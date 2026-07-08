@@ -51,6 +51,7 @@ class _EqualizerPageState extends ConsumerState<EqualizerPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('均衡器'),
@@ -58,7 +59,7 @@ class _EqualizerPageState extends ConsumerState<EqualizerPage> {
           Switch(
             value: _enabled,
             onChanged: _toggleEnabled,
-            activeThumbColor: AppColors.primary,
+            activeThumbColor: colors.primary,
           ),
           const SizedBox(width: 8),
         ],
@@ -79,13 +80,13 @@ class _EqualizerPageState extends ConsumerState<EqualizerPage> {
                         Icon(
                           Icons.equalizer,
                           size: 64,
-                          color: AppColors.textTertiary.withValues(alpha: 0.3),
+                          color: colors.textTertiary.withValues(alpha: 0.3),
                         ),
                         const SizedBox(height: 16),
                         Text(
                           '均衡器已关闭',
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            color: AppColors.textTertiary,
+                          style: AppTextStyles.bodyMedium(context).copyWith(
+                            color: colors.textTertiary,
                           ),
                         ),
                       ],
@@ -98,6 +99,7 @@ class _EqualizerPageState extends ConsumerState<EqualizerPage> {
   }
 
   Widget _buildPresetSelector() {
+    final colors = AppColors.of(context);
     return Container(
       height: 80,
       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -116,11 +118,11 @@ class _EqualizerPageState extends ConsumerState<EqualizerPage> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? AppColors.primary.withValues(alpha: 0.2)
-                    : AppColors.surfaceVariant,
+                    ? colors.primary.withValues(alpha: 0.2)
+                    : colors.surfaceVariant,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: isSelected ? AppColors.primary : AppColors.divider,
+                  color: isSelected ? colors.primary : colors.divider,
                   width: isSelected ? 2 : 1,
                 ),
               ),
@@ -128,7 +130,7 @@ class _EqualizerPageState extends ConsumerState<EqualizerPage> {
                 child: Text(
                   preset.label,
                   style: TextStyle(
-                    color: isSelected ? AppColors.primary : AppColors.textSecondary,
+                    color: isSelected ? colors.primary : colors.textSecondary,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                     fontSize: 13,
                   ),
@@ -154,9 +156,9 @@ class _EqualizerPageState extends ConsumerState<EqualizerPage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('+12 dB', style: AppTextStyles.bodySmall),
-                Text('0 dB', style: AppTextStyles.bodySmall),
-                Text('-12 dB', style: AppTextStyles.bodySmall),
+                Text('+12 dB', style: AppTextStyles.bodySmall(context)),
+                Text('0 dB', style: AppTextStyles.bodySmall(context)),
+                Text('-12 dB', style: AppTextStyles.bodySmall(context)),
               ],
             ),
           ),

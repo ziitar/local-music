@@ -88,16 +88,16 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage> {
                             iconSize: 80,
                           ),
                           const SizedBox(height: 16),
-                          Text(_album!.title, style: AppTextStyles.headlineMedium, textAlign: TextAlign.center),
+                          Text(_album!.title, style: AppTextStyles.headlineMedium(context), textAlign: TextAlign.center),
                           if (_album!.artist != null)
                             Padding(
                               padding: const EdgeInsets.only(top: 4),
-                              child: Text(_album!.artist!, style: AppTextStyles.bodyMedium),
+                              child: Text(_album!.artist!, style: AppTextStyles.bodyMedium(context)),
                             ),
                           const SizedBox(height: 4),
                           Text(
                             '${_album!.songCount ?? _album!.songs?.length ?? 0} 首歌曲',
-                            style: AppTextStyles.bodySmall,
+                            style: AppTextStyles.bodySmall(context),
                           ),
                           const SizedBox(height: 16),
                           FilledButton.icon(

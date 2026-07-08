@@ -117,6 +117,7 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     final player = ref.watch(playerProvider);
     final playerSong = player.currentSong;
 
@@ -160,7 +161,7 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
                 // Layer 2: Blur + dark overlay for readability
                 Positioned.fill(
                   child: Container(
-                    color: AppColors.background.withValues(alpha: 0.75),
+                    color: colors.background.withValues(alpha: 0.75),
                   ),
                 ),
                 // Layer 3: Gradient tint
@@ -171,8 +172,8 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          AppColors.primaryDark.withValues(alpha: 0.3),
-                          AppColors.background.withValues(alpha: 0.5),
+                          colors.primaryDark.withValues(alpha: 0.3),
+                          colors.background.withValues(alpha: 0.5),
                         ],
                       ),
                     ),
@@ -216,6 +217,7 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
   }
 
   Widget _buildDot(_ViewMode mode) {
+    final colors = AppColors.of(context);
     final isActive = _viewMode == mode;
     return GestureDetector(
       onTap: () => setState(() => _viewMode = mode),
@@ -224,8 +226,8 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
         height: 8,
         decoration: BoxDecoration(
           color: isActive
-              ? AppColors.primary
-              : AppColors.textTertiary.withValues(alpha: 0.3),
+              ? colors.primary
+              : colors.textTertiary.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(4),
         ),
       ),
@@ -271,15 +273,15 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
           const SizedBox(height: 32),
           Text(
             song.title,
-            style: AppTextStyles.headlineMedium,
+            style: AppTextStyles.headlineMedium(context),
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 8),
-          Text(song.artist, style: AppTextStyles.bodyMedium),
+          Text(song.artist, style: AppTextStyles.bodyMedium(context)),
           const SizedBox(height: 4),
-          Text(song.album, style: AppTextStyles.bodySmall),
+          Text(song.album, style: AppTextStyles.bodySmall(context)),
         ],
       ),
     );
@@ -287,9 +289,10 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
 
   Widget _buildLyricsView() {
     if (_lyrics.isEmpty) {
-      return const Center(child: Text('暂无歌词', style: AppTextStyles.bodyMedium));
+      return Center(child: Text('暂无歌词', style: AppTextStyles.bodyMedium(context)));
     }
 
+    final colors = AppColors.of(context);
     final player = ref.watch(playerProvider);
     final activeIndex = _findActiveLyricIndex(player.position);
 
@@ -345,8 +348,8 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
                               ? FontWeight.bold
                               : FontWeight.normal,
                           color: isActive
-                              ? AppColors.textPrimary
-                              : AppColors.textTertiary,
+                              ? colors.textPrimary
+                              : colors.textTertiary,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -358,8 +361,8 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
                             style: TextStyle(
                               fontSize: isActive ? 14 : 12,
                               color: isActive
-                                  ? AppColors.textSecondary
-                                  : AppColors.textTertiary,
+                                  ? colors.textSecondary
+                                  : colors.textTertiary,
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -376,6 +379,7 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
   }
 
   Widget _buildControls(Song song, PlayerState player) {
+    final colors = AppColors.of(context);
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -385,7 +389,7 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
             children: [
               Text(
                 formatDuration(player.position),
-                style: AppTextStyles.bodySmall,
+                style: AppTextStyles.bodySmall(context),
               ),
               Expanded(
                 child: Slider(
@@ -405,7 +409,7 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
               ),
               Text(
                 formatDuration(player.duration),
-                style: AppTextStyles.bodySmall,
+                style: AppTextStyles.bodySmall(context),
               ),
             ],
           ),
@@ -416,20 +420,20 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
               IconButton(
                 icon: Icon(
                   _playModeIcon(player.playMode),
-                  color: AppColors.textSecondary,
+                  color: colors.textSecondary,
                 ),
                 onPressed: () =>
                     ref.read(playerProvider.notifier).cyclePlayMode(),
               ),
               IconButton(
                 icon: const Icon(Icons.skip_previous, size: 36),
-                color: AppColors.textPrimary,
+                color: colors.textPrimary,
                 onPressed: () => ref.read(playerProvider.notifier).previous(),
               ),
               Container(
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.primary,
+                  color: colors.primary,
                 ),
                 child: IconButton(
                   icon: Icon(
@@ -443,7 +447,7 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
               ),
               IconButton(
                 icon: const Icon(Icons.skip_next, size: 36),
-                color: AppColors.textPrimary,
+                color: colors.textPrimary,
                 onPressed: () => ref.read(playerProvider.notifier).next(),
               ),
               IconButton(
@@ -451,7 +455,7 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
                   _viewMode == _ViewMode.lyrics
                       ? Icons.music_note
                       : Icons.lyrics,
-                  color: AppColors.textSecondary,
+                  color: colors.textSecondary,
                 ),
                 onPressed: () => setState(() {
                   _viewMode = _viewMode == _ViewMode.lyrics

@@ -20,6 +20,7 @@ class CoverImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return ClipRRect(
       borderRadius: borderRadius,
       child: SizedBox(
@@ -29,20 +30,20 @@ class CoverImage extends StatelessWidget {
             ? Image.network(
                 imageUrl!,
                 fit: fit,
-                errorBuilder: (_, _, _) => _placeholder(),
+                errorBuilder: (_, _, _) => _placeholder(colors),
               )
-            : _placeholder(),
+            : _placeholder(colors),
       ),
     );
   }
 
-  Widget _placeholder() {
+  Widget _placeholder(AppColors colors) {
     return Container(
-      color: AppColors.surfaceVariant,
+      color: colors.surfaceVariant,
       child: Center(
         child: Icon(
           Icons.music_note,
-          color: AppColors.textTertiary,
+          color: colors.textTertiary,
           size: iconSize,
         ),
       ),

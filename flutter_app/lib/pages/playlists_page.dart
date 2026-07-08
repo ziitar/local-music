@@ -79,6 +79,7 @@ class _PlaylistsPageState extends ConsumerState<PlaylistsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('歌单'),
@@ -96,9 +97,9 @@ class _PlaylistsPageState extends ConsumerState<PlaylistsPage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.playlist_play, size: 64, color: AppColors.textTertiary),
+                      Icon(Icons.playlist_play, size: 64, color: colors.textTertiary),
                       const SizedBox(height: 16),
-                      const Text('暂无歌单', style: AppTextStyles.bodyMedium),
+                      Text('暂无歌单', style: AppTextStyles.bodyMedium(context)),
                       const SizedBox(height: 16),
                       FilledButton.icon(
                         onPressed: _createPlaylist,

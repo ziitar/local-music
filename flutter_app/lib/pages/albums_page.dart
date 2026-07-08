@@ -13,6 +13,7 @@ class AlbumsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colors = AppColors.of(context);
     return Scaffold(
       appBar: AppBar(title: const Text('专辑')),
       body: PaginatedListView<Album>(
@@ -40,14 +41,14 @@ class AlbumsPage extends ConsumerWidget {
                 const SizedBox(height: 8),
                 Text(
                   album.title,
-                  style: AppTextStyles.bodyMedium
-                      .copyWith(color: AppColors.textPrimary),
+                  style: AppTextStyles.bodyMedium(context)
+                      .copyWith(color: colors.textPrimary),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
                   album.artist ?? '',
-                  style: AppTextStyles.bodySmall,
+                  style: AppTextStyles.bodySmall(context),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),

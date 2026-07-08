@@ -16,6 +16,7 @@ class EqBandSlider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return SizedBox(
       width: 48,
       child: Column(
@@ -26,8 +27,8 @@ class EqBandSlider extends StatelessWidget {
             value >= 0 ? '+${(value * 12).toStringAsFixed(0)}' : (value * 12).toStringAsFixed(0),
             style: TextStyle(
               color: value.abs() > 0.01
-                  ? AppColors.primary
-                  : AppColors.textTertiary,
+                  ? colors.primary
+                  : colors.textTertiary,
               fontSize: 10,
               fontWeight: FontWeight.w500,
             ),
@@ -39,9 +40,9 @@ class EqBandSlider extends StatelessWidget {
               quarterTurns: -1,
               child: SliderTheme(
                 data: SliderThemeData(
-                  activeTrackColor: AppColors.primary,
-                  inactiveTrackColor: AppColors.divider,
-                  thumbColor: AppColors.primary,
+                  activeTrackColor: colors.primary,
+                  inactiveTrackColor: colors.divider,
+                  thumbColor: colors.primary,
                   thumbShape: const RoundSliderThumbShape(
                     enabledThumbRadius: 8,
                     elevation: 2,
@@ -65,8 +66,8 @@ class EqBandSlider extends StatelessWidget {
           // Frequency label
           Text(
             label,
-            style: const TextStyle(
-              color: AppColors.textTertiary,
+            style: TextStyle(
+              color: colors.textTertiary,
               fontSize: 9,
             ),
             textAlign: TextAlign.center,

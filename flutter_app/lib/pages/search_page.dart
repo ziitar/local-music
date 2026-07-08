@@ -28,17 +28,18 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Scaffold(
       appBar: AppBar(
         title: TextField(
           controller: _controller,
           autofocus: true,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             hintText: '搜索歌曲、歌手、专辑...',
             border: InputBorder.none,
-            hintStyle: TextStyle(color: AppColors.textTertiary),
+            hintStyle: TextStyle(color: colors.textTertiary),
           ),
-          style: const TextStyle(color: AppColors.textPrimary),
+          style: TextStyle(color: colors.textPrimary),
           onSubmitted: (v) {
             if (v.isNotEmpty) {
               setState(() => _query = v);
@@ -63,7 +64,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           ? Center(
               child: Text(
                 '输入关键词搜索',
-                style: AppTextStyles.bodyMedium,
+                style: AppTextStyles.bodyMedium(context),
               ),
             )
           : PaginatedListView<Song>(

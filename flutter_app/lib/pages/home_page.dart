@@ -57,7 +57,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  const Text('曲库', style: AppTextStyles.titleLarge),
+                  Text('曲库', style: AppTextStyles.titleLarge(context)),
                   const SizedBox(height: 12),
                   // Quick access cards
                   Row(
@@ -83,7 +83,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ),
                   const SizedBox(height: 24),
                   if (_history.isNotEmpty) ...[
-                    const Text('最近播放', style: AppTextStyles.titleLarge),
+                    Text('最近播放', style: AppTextStyles.titleLarge(context)),
                     const SizedBox(height: 12),
                     ...ListTile.divideTiles(
                       context: context,
@@ -117,6 +117,7 @@ class _QuickAccessCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Expanded(
       child: InkWell(
         onTap: onTap,
@@ -124,14 +125,14 @@ class _QuickAccessCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 20),
           decoration: BoxDecoration(
-            color: AppColors.surfaceVariant,
+            color: colors.surfaceVariant,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
             children: [
-              Icon(icon, color: AppColors.primary, size: 32),
+              Icon(icon, color: colors.primary, size: 32),
               const SizedBox(height: 8),
-              Text(label, style: AppTextStyles.bodyMedium),
+              Text(label, style: AppTextStyles.bodyMedium(context)),
             ],
           ),
         ),

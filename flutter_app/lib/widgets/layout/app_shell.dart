@@ -11,6 +11,7 @@ class AppShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Scaffold(
       body: Column(
         children: [
@@ -21,27 +22,27 @@ class AppShell extends StatelessWidget {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex(context),
         onDestinationSelected: (index) => _onTap(context, index),
-        backgroundColor: AppColors.surface,
-        indicatorColor: AppColors.primary.withValues(alpha: 0.2),
-        destinations: const [
+        backgroundColor: colors.surface,
+        indicatorColor: colors.primary.withValues(alpha: 0.2),
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home, color: AppColors.primary),
+            icon: const Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home, color: colors.primary),
             label: '首页',
           ),
           NavigationDestination(
-            icon: Icon(Icons.library_music_outlined),
-            selectedIcon: Icon(Icons.library_music, color: AppColors.primary),
+            icon: const Icon(Icons.library_music_outlined),
+            selectedIcon: Icon(Icons.library_music, color: colors.primary),
             label: '曲库',
           ),
           NavigationDestination(
-            icon: Icon(Icons.search_outlined),
-            selectedIcon: Icon(Icons.search, color: AppColors.primary),
+            icon: const Icon(Icons.search_outlined),
+            selectedIcon: Icon(Icons.search, color: colors.primary),
             label: '搜索',
           ),
           NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings, color: AppColors.primary),
+            icon: const Icon(Icons.settings_outlined),
+            selectedIcon: Icon(Icons.settings, color: colors.primary),
             label: '设置',
           ),
         ],

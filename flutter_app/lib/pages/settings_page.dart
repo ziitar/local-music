@@ -16,6 +16,7 @@ class SettingsPage extends ConsumerWidget {
     final auth = ref.watch(authProvider);
     final storage = ref.watch(storageServiceProvider);
     final settings = ref.watch(playbackSettingsProvider);
+    final colors = AppColors.of(context);
 
     return Scaffold(
       appBar: AppBar(title: const Text('设置')),
@@ -24,19 +25,19 @@ class SettingsPage extends ConsumerWidget {
           // User info
           if (auth.user != null)
             ListTile(
-              leading: const CircleAvatar(
-                backgroundColor: AppColors.primary,
-                child: Icon(Icons.person, color: Colors.white),
+              leading: CircleAvatar(
+                backgroundColor: colors.primary,
+                child: const Icon(Icons.person, color: Colors.white),
               ),
-              title: Text(auth.user!.username, style: AppTextStyles.titleMedium),
-              subtitle: Text(auth.user!.role, style: AppTextStyles.bodySmall),
+              title: Text(auth.user!.username, style: AppTextStyles.titleMedium(context)),
+              subtitle: Text(auth.user!.role, style: AppTextStyles.bodySmall(context)),
             ),
-          const Divider(),
+          Divider(color: colors.divider),
 
           // Server
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
-            child: Text('服务器', style: AppTextStyles.labelLarge),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            child: Text('服务器', style: AppTextStyles.labelLarge(context)),
           ),
           ListTile(
             leading: const Icon(Icons.dns),
@@ -48,10 +49,42 @@ class SettingsPage extends ConsumerWidget {
             },
           ),
 
+          // Appearance
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+            child: Text('外观', style: AppTextStyles.labelLarge(context)),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SegmentedButton<ThemeMode>(
+              segments: const [
+                ButtonSegment(
+                  value: ThemeMode.system,
+                  label: Text('跟随系统'),
+                  icon: Icon(Icons.brightness_auto),
+                ),
+                ButtonSegment(
+                  value: ThemeMode.light,
+                  label: Text('浅色'),
+                  icon: Icon(Icons.light_mode),
+                ),
+                ButtonSegment(
+                  value: ThemeMode.dark,
+                  label: Text('深色'),
+                  icon: Icon(Icons.dark_mode),
+                ),
+              ],
+              selected: {ref.watch(themeModeProvider)},
+              onSelectionChanged: (modes) {
+                ref.read(themeModeProvider.notifier).setThemeMode(modes.first);
+              },
+            ),
+          ),
+
           // Playback
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
-            child: Text('播放', style: AppTextStyles.labelLarge),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+            child: Text('播放', style: AppTextStyles.labelLarge(context)),
           ),
           ListTile(
             leading: const Icon(Icons.high_quality),
@@ -67,7 +100,7 @@ class SettingsPage extends ConsumerWidget {
             title: const Text('均衡器'),
             subtitle: const Text('关闭时音频不经过均衡器处理'),
             value: settings.eqEnabled,
-            activeThumbColor: AppColors.primary,
+            activeThumbColor: colors.primary,
             onChanged: (value) {
               ref.read(playbackSettingsProvider.notifier).setEqEnabled(value);
             },
@@ -88,7 +121,7 @@ class SettingsPage extends ConsumerWidget {
                       child: ChoiceChip(
                         label: Text(preset.label),
                         selected: isSelected,
-                        selectedColor: AppColors.primary,
+                        selectedColor: colors.primary,
                         onSelected: (_) {
                           ref.read(playbackSettingsProvider.notifier)
                               .setEqPreset(preset.name);
@@ -113,7 +146,7 @@ class SettingsPage extends ConsumerWidget {
             title: const Text('响度归一化'),
             subtitle: const Text('自动调整音量，使不同歌曲响度一致'),
             value: settings.loudnessNormalizationEnabled,
-            activeThumbColor: AppColors.primary,
+            activeThumbColor: colors.primary,
             onChanged: (value) {
               ref.read(playbackSettingsProvider.notifier)
                   .setLoudnessNormalization(value);
@@ -121,9 +154,9 @@ class SettingsPage extends ConsumerWidget {
           ),
 
           // About
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
-            child: Text('关于', style: AppTextStyles.labelLarge),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+            child: Text('关于', style: AppTextStyles.labelLarge(context)),
           ),
           const ListTile(
             leading: Icon(Icons.info_outline),
@@ -132,7 +165,7 @@ class SettingsPage extends ConsumerWidget {
           ),
 
           // Logout
-          const Divider(),
+          Divider(color: colors.divider),
           Padding(
             padding: const EdgeInsets.all(16),
             child: OutlinedButton.icon(
@@ -140,8 +173,8 @@ class SettingsPage extends ConsumerWidget {
                 await ref.read(authProvider.notifier).logout();
                 if (context.mounted) context.go('/login');
               },
-              icon: const Icon(Icons.logout, color: AppColors.error),
-              label: const Text('退出登录', style: TextStyle(color: AppColors.error)),
+              icon: Icon(Icons.logout, color: colors.error),
+              label: Text('退出登录', style: TextStyle(color: colors.error)),
             ),
           ),
         ],
@@ -161,31 +194,33 @@ class _QualitySheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final current = ref.watch(playbackSettingsProvider).quality;
+    final colors = AppColors.of(context);
 
     return SafeArea(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Padding(
-            padding: EdgeInsets.all(16),
-            child: Text('选择音质', style: AppTextStyles.titleLarge),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text('选择音质', style: AppTextStyles.titleLarge(context)),
           ),
-          _buildOption(context, ref, '原始', null, current),
-          _buildOption(context, ref, '无损', 'lossless', current),
-          _buildOption(context, ref, '320K', '320', current),
-          _buildOption(context, ref, '192K', '192', current),
-          _buildOption(context, ref, '128K', '128', current),
+          _buildOption(context, ref, '原始', null, current, colors),
+          _buildOption(context, ref, '无损', 'lossless', current, colors),
+          _buildOption(context, ref, '320K', '320', current, colors),
+          _buildOption(context, ref, '192K', '192', current, colors),
+          _buildOption(context, ref, '128K', '128', current, colors),
           const SizedBox(height: 16),
         ],
       ),
     );
   }
 
-  Widget _buildOption(BuildContext context, WidgetRef ref, String label, String? value, String? current) {
+  Widget _buildOption(BuildContext context, WidgetRef ref, String label,
+      String? value, String? current, AppColors colors) {
     final isSelected = current == value;
     return ListTile(
       title: Text(label),
-      trailing: isSelected ? const Icon(Icons.check, color: AppColors.primary) : null,
+      trailing: isSelected ? Icon(Icons.check, color: colors.primary) : null,
       onTap: () {
         ref.read(playbackSettingsProvider.notifier).setQuality(value);
         Navigator.pop(context);

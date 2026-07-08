@@ -42,6 +42,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
+    final colors = AppColors.of(context);
 
     return Scaffold(
       appBar: AppBar(title: const Text('注册')),
@@ -55,7 +56,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('创建账号', style: AppTextStyles.headlineMedium),
+                  Text('创建账号', style: AppTextStyles.headlineMedium(context)),
                   const SizedBox(height: 32),
                   TextFormField(
                     controller: _usernameController,
@@ -96,7 +97,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                   if (auth.error != null)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
-                      child: Text(auth.error!, style: const TextStyle(color: AppColors.error, fontSize: 13)),
+                      child: Text(auth.error!, style: TextStyle(color: colors.error, fontSize: 13)),
                     ),
                   const SizedBox(height: 24),
                   SizedBox(
