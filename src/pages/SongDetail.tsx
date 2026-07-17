@@ -5,7 +5,8 @@ import { usePlayerStore } from "../stores/playerStore.ts";
 import { parseLrc, findActiveLine } from "../lib/lrcParser.ts";
 import { audioAnalyserService } from "../services/audioAnalyser.ts";
 import { createVisualizerState, drawSciFiVisualizer } from "../lib/visualizer.ts";
-import { ArrowLeft, Music } from "lucide-react";
+import { AddToPlaylistModal } from "../components/AddToPlaylistModal.tsx";
+import { ArrowLeft, ListPlus, Music } from "lucide-react";
 import type { Song } from "../types/index.ts";
 import type { LrcLine } from "../lib/lrcParser.ts";
 
@@ -25,12 +26,13 @@ export function SongDetailPage() {
   const [lrcLines, setLrcLines] = useState<LrcLine[]>([]);
   const [isLyricsLoading, setIsLyricsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<ActiveTab>('lyrics');
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   const {
     currentSong,
     currentTime,
     audioElement,
-    setCurrentTime,
+    seekTo,
   } = usePlayerStore();
 
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(
@@ -79,19 +81,14 @@ export function SongDetailPage() {
     fetchSong();
   }, [id]);
 
-  // Sync with player's currentSong when it changes (auto next/prev)
-  useEffect(() => {
-    if (currentSong) {
-      setSong(currentSong);
-    }
-  }, [currentSong?.id]);
+  const activeSong = currentSong ?? song;
 
   useEffect(() => {
     const fetchLyrics = async () => {
-      if (!song) return;
+      if (!activeSong) return;
       setIsLyricsLoading(true);
       try {
-        const data = await lyricsApi.get(song.title, song.artist);
+        const data = await lyricsApi.get(activeSong.title, activeSong.artist);
         if (data.lrc) {
           const lines = parseLrc(data.lrc);
           setLrcLines(lines);
@@ -105,7 +102,7 @@ export function SongDetailPage() {
       setIsLyricsLoading(false);
     };
     fetchLyrics();
-  }, [song?.id]);
+  }, [activeSong]);
 
   const activeLineIndex = useMemo(() => {
     return findActiveLine(lrcLines, currentTime);
@@ -121,11 +118,8 @@ export function SongDetailPage() {
   }, [activeLineIndex, activeTab]);
 
   const handleLyricClick = useCallback((time: number) => {
-    if (audioElement) {
-      audioElement.currentTime = time;
-      setCurrentTime(time);
-    }
-  }, [audioElement, setCurrentTime]);
+    seekTo(time);
+  }, [seekTo]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartRef.current = e.touches[0].clientX;
@@ -193,7 +187,7 @@ export function SongDetailPage() {
     return <div className="h-full flex items-center justify-center">加载中...</div>;
   }
 
-  if (!song) {
+  if (!activeSong) {
     return <div className="h-full flex items-center justify-center">歌曲不存在</div>;
   }
 
@@ -207,16 +201,24 @@ export function SongDetailPage() {
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <h1 className="text-lg font-semibold truncate flex-1 text-foreground">{song.title}</h1>
+          <h1 className="text-lg font-semibold truncate flex-1 text-foreground">{activeSong.title}</h1>
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="p-2 rounded-full hover:bg-white/10 transition-colors text-foreground"
+            aria-label="添加到歌单"
+            title="添加到歌单"
+          >
+            <ListPlus className="h-5 w-5" />
+          </button>
         </div>
 
         <div className="flex flex-col items-center px-6 py-4">
           <div className="w-36 h-36 sm:w-48 sm:h-48 bg-muted rounded-lg flex items-center justify-center overflow-hidden shadow-2xl mb-4">
-            {song.cover_image
+            {activeSong.cover_image
               ? (
                 <img
-                  src={API_BASE + song.cover_image}
-                  alt={song.title}
+                  src={API_BASE + activeSong.cover_image}
+                  alt={activeSong.title}
                   className="w-full h-full object-cover"
                 />
               )
@@ -225,10 +227,10 @@ export function SongDetailPage() {
               )}
           </div>
 
-          <h2 className="text-xl sm:text-2xl font-bold text-center text-foreground">{song.title}</h2>
-          <p className="text-sm text-muted-foreground text-center mt-1">{song.artist}</p>
-          {song.album && song.album !== 'Unknown Album' && (
-            <p className="text-xs text-muted-foreground text-center mt-1">{song.album}</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-center text-foreground">{activeSong.title}</h2>
+          <p className="text-sm text-muted-foreground text-center mt-1">{activeSong.artist}</p>
+          {activeSong.album && activeSong.album !== 'Unknown Album' && (
+            <p className="text-xs text-muted-foreground text-center mt-1">{activeSong.album}</p>
           )}
         </div>
 
@@ -308,6 +310,12 @@ export function SongDetailPage() {
           )}
         </div>
       </div>
+
+      <AddToPlaylistModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        songIds={[activeSong.id]}
+      />
     </div>
   );
 }

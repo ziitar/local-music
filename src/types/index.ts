@@ -41,6 +41,7 @@ export interface Artist {
   song_count?: number;
   album_count?: number;
   albums?: Album[];
+  songs?: Song[];
   created_at?: string;
 }
 

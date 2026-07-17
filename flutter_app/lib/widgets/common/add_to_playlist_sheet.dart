@@ -4,30 +4,31 @@ import '../../models/playlist.dart';
 import '../../providers/providers.dart';
 import '../../theme/colors.dart';
 
-/// Bottom sheet for adding a song to a playlist.
-///
-/// Usage:
-/// ```dart
-/// AddToPlaylistSheet.show(context, ref, songId: song.id);
-/// ```
+/// Bottom sheet for adding one or more songs to a playlist.
 class AddToPlaylistSheet extends ConsumerStatefulWidget {
-  final int songId;
+  final List<int> songIds;
 
-  const AddToPlaylistSheet({super.key, required this.songId});
+  const AddToPlaylistSheet({super.key, required this.songIds});
 
   /// Show the sheet as a modal bottom sheet.
   static Future<void> show(
     BuildContext context,
     WidgetRef ref, {
-    required int songId,
+    int? songId,
+    List<int>? songIds,
   }) {
+    final ids = <int>{
+      if (songId != null) songId,
+      ...?songIds,
+    }.toList();
+
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (_) => AddToPlaylistSheet(songId: songId),
+      builder: (_) => AddToPlaylistSheet(songIds: ids),
     );
   }
 
@@ -66,10 +67,17 @@ class _AddToPlaylistSheetState extends ConsumerState<AddToPlaylistSheet> {
   }
 
   Future<void> _addToPlaylist(int playlistId, String playlistName) async {
+    if (widget.songIds.isEmpty) return;
+
     setState(() => _submitting = true);
     try {
       final api = ref.read(apiClientProvider);
-      await api.addSongToPlaylist(playlistId, widget.songId);
+      if (widget.songIds.length == 1) {
+        await api.addSongToPlaylist(playlistId, widget.songIds.first);
+      } else {
+        await api.addSongsToPlaylist(playlistId, widget.songIds);
+      }
+
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -115,7 +123,16 @@ class _AddToPlaylistSheetState extends ConsumerState<AddToPlaylistSheet> {
                 ],
               ),
             ),
-            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '将 ${widget.songIds.length} 首歌曲添加到：',
+                  style: TextStyle(color: colors.textSecondary, fontSize: 13),
+                ),
+              ),
+            ),
             if (_loading)
               const Padding(
                 padding: EdgeInsets.all(32),
@@ -124,8 +141,10 @@ class _AddToPlaylistSheetState extends ConsumerState<AddToPlaylistSheet> {
             else if (_playlists.isEmpty)
               Padding(
                 padding: const EdgeInsets.all(32),
-                child: Text('暂无歌单，请先创建歌单',
-                    style: TextStyle(color: colors.textTertiary)),
+                child: Text(
+                  '暂无歌单，请先创建歌单',
+                  style: TextStyle(color: colors.textTertiary),
+                ),
               )
             else
               ConstrainedBox(
@@ -138,19 +157,20 @@ class _AddToPlaylistSheetState extends ConsumerState<AddToPlaylistSheet> {
                   itemBuilder: (context, index) {
                     final playlist = _playlists[index];
                     return ListTile(
-                      leading: Icon(Icons.playlist_play,
-                          color: colors.primary),
-                      title: Text(playlist.name,
-                          style:
-                              TextStyle(color: colors.textPrimary)),
+                      leading: Icon(Icons.playlist_add, color: colors.primary),
+                      title: Text(
+                        playlist.name,
+                        style: TextStyle(color: colors.textPrimary),
+                      ),
                       subtitle: Text(
                         '${playlist.songCount ?? 0} 首歌曲',
                         style: TextStyle(
-                            color: colors.textSecondary, fontSize: 12),
+                          color: colors.textSecondary,
+                          fontSize: 12,
+                        ),
                       ),
                       enabled: !_submitting,
-                      onTap: () =>
-                          _addToPlaylist(playlist.id, playlist.name),
+                      onTap: () => _addToPlaylist(playlist.id, playlist.name),
                     );
                   },
                 ),

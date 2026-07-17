@@ -29,6 +29,7 @@ interface PlayerState {
   setIsPlaying: (playing: boolean) => void;
   setVolume: (volume: number) => void;
   setCurrentTime: (time: number) => void;
+  seekTo: (time: number) => void;
   setDuration: (duration: number) => void;
   setAudioElement: (element: HTMLAudioElement) => void;
   setPlayMode: (mode: PlayMode) => void;
@@ -111,6 +112,13 @@ export const usePlayerStore = create<PlayerState>()(
         set({ volume });
       },
       setCurrentTime: (time) => set({ currentTime: time }),
+      seekTo: (time) => {
+        const { audioElement } = get();
+        if (audioElement) {
+          audioElement.currentTime = time;
+        }
+        set({ currentTime: time });
+      },
       setDuration: (duration) => set({ duration }),
       setAudioElement: (element) => {
         const { volume } = get();

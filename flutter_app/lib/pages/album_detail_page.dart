@@ -4,6 +4,7 @@ import '../theme/text_styles.dart';
 import '../models/album.dart';
 import '../providers/player_provider.dart';
 import '../providers/providers.dart';
+import '../widgets/common/add_to_playlist_sheet.dart';
 import '../widgets/common/cover_image.dart';
 import '../widgets/common/song_list_tile.dart';
 import '../widgets/common/song_search_delegate.dart';
@@ -39,16 +40,22 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage> {
     }
   }
 
+  List<int> get _songIds =>
+      _album?.songs?.map((song) => song.id).toList() ?? const [];
+
   void _showSearch() {
+    final songs = _album?.songs;
+    if (songs == null || songs.isEmpty) return;
+
     showSearch(
       context: context,
       delegate: SongSearchDelegate(
-        songs: _album!.songs!,
+        songs: songs,
         onSelected: (song) {
-          final index = _album!.songs!.indexOf(song);
+          final index = songs.indexOf(song);
           ref.read(playerProvider.notifier).playSong(
                 song,
-                queue: _album!.songs!,
+                queue: songs,
                 index: index,
               );
         },
@@ -56,16 +63,29 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage> {
     );
   }
 
+  void _addAllToPlaylist() {
+    if (_songIds.isEmpty) return;
+    AddToPlaylistSheet.show(context, ref, songIds: _songIds);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final songs = _album?.songs;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(_album?.title ?? '专辑'),
         actions: [
-          if (_album?.songs != null && _album!.songs!.isNotEmpty)
+          if (songs != null && songs.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.playlist_add),
+              tooltip: '添加全部到歌单',
+              onPressed: _addAllToPlaylist,
+            ),
+          if (songs != null && songs.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.search),
-              onPressed: () => _showSearch(),
+              onPressed: _showSearch,
             ),
         ],
       ),
@@ -75,7 +95,6 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage> {
               ? const Center(child: Text('加载失败'))
               : ListView(
                   children: [
-                    // Header
                     Container(
                       padding: const EdgeInsets.all(24),
                       child: Column(
@@ -88,11 +107,18 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage> {
                             iconSize: 80,
                           ),
                           const SizedBox(height: 16),
-                          Text(_album!.title, style: AppTextStyles.headlineMedium(context), textAlign: TextAlign.center),
+                          Text(
+                            _album!.title,
+                            style: AppTextStyles.headlineMedium(context),
+                            textAlign: TextAlign.center,
+                          ),
                           if (_album!.artist != null)
                             Padding(
                               padding: const EdgeInsets.only(top: 4),
-                              child: Text(_album!.artist!, style: AppTextStyles.bodyMedium(context)),
+                              child: Text(
+                                _album!.artist!,
+                                style: AppTextStyles.bodyMedium(context),
+                              ),
                             ),
                           const SizedBox(height: 4),
                           Text(
@@ -100,20 +126,35 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage> {
                             style: AppTextStyles.bodySmall(context),
                           ),
                           const SizedBox(height: 16),
-                          FilledButton.icon(
-                            onPressed: () {
-                              final songs = _album!.songs;
-                              if (songs != null && songs.isNotEmpty) {
-                                ref.read(playerProvider.notifier).playQueue(songs);
-                              }
-                            },
-                            icon: const Icon(Icons.play_arrow),
-                            label: const Text('播放全部'),
+                          Wrap(
+                            alignment: WrapAlignment.center,
+                            spacing: 12,
+                            runSpacing: 8,
+                            children: [
+                              FilledButton.icon(
+                                onPressed: () {
+                                  final albumSongs = _album!.songs;
+                                  if (albumSongs != null &&
+                                      albumSongs.isNotEmpty) {
+                                    ref
+                                        .read(playerProvider.notifier)
+                                        .playQueue(albumSongs);
+                                  }
+                                },
+                                icon: const Icon(Icons.play_arrow),
+                                label: const Text('播放全部'),
+                              ),
+                              OutlinedButton.icon(
+                                onPressed:
+                                    _songIds.isEmpty ? null : _addAllToPlaylist,
+                                icon: const Icon(Icons.playlist_add),
+                                label: const Text('添加全部到歌单'),
+                              ),
+                            ],
                           ),
                         ],
                       ),
                     ),
-                    // Songs
                     if (_album!.songs != null)
                       ...ListTile.divideTiles(
                         context: context,
@@ -126,10 +167,10 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage> {
                             trackNo: song.trackNo,
                             onTap: () {
                               ref.read(playerProvider.notifier).playSong(
-                                song,
-                                queue: _album!.songs!,
-                                index: entry.key,
-                              );
+                                    song,
+                                    queue: _album!.songs!,
+                                    index: entry.key,
+                                  );
                             },
                           );
                         }),

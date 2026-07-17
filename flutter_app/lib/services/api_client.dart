@@ -274,6 +274,12 @@ class ApiClient {
     );
   }
 
+  Future<void> addSongsToPlaylist(int playlistId, List<int> songIds) async {
+    await _dio.post('/api/playlists/$playlistId/songs/batch',
+      data: {'songIds': songIds},
+    );
+  }
+
   Future<void> removeSongFromPlaylist(int playlistId, int songId) async {
     await _dio.delete('/api/playlists/$playlistId/songs/$songId');
   }

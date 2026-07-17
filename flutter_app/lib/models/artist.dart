@@ -1,5 +1,6 @@
 import 'package:json_annotation/json_annotation.dart';
 import 'album.dart';
+import 'song.dart';
 
 part 'artist.g.dart';
 
@@ -13,6 +14,7 @@ class Artist {
   @JsonKey(name: 'album_count')
   final int? albumCount;
   final List<Album>? albums;
+  final List<Song>? songs;
   @JsonKey(name: 'created_at')
   final String? createdAt;
 
@@ -23,6 +25,7 @@ class Artist {
     this.songCount,
     this.albumCount,
     this.albums,
+    this.songs,
     this.createdAt,
   });
 

@@ -8,6 +8,7 @@ import '../providers/player_provider.dart';
 import '../providers/providers.dart';
 import '../utils/format_duration.dart';
 import '../widgets/common/cover_image.dart';
+import '../widgets/common/add_to_playlist_sheet.dart';
 import '../widgets/lyrics/lrc_parser.dart';
 
 /// View mode for the song detail page.
@@ -29,6 +30,7 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
 
   // Lyrics auto-scroll
   final ScrollController _lyricsScrollController = ScrollController();
+  List<GlobalKey> _lyricKeys = [];
   int _activeLyricIndex = -1;
   bool _userScrolling = false;
 
@@ -43,6 +45,8 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
       _loading = true;
       _song = null;
       _lyrics = [];
+      _lyricKeys = [];
+      _activeLyricIndex = -1;
     });
     try {
       final api = ref.read(apiClientProvider);
@@ -54,11 +58,19 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
       final lyricsResp = await api.getLyrics(song.title, song.artist);
       if (!mounted) return;
       if (lyricsResp.lrc != null) {
+        final parsedLyrics = LrcParser.parse(
+          lyricsResp.lrc!,
+          translatedLrc: lyricsResp.translatedLrc,
+        );
         setState(
-          () => _lyrics = LrcParser.parse(
-            lyricsResp.lrc!,
-            translatedLrc: lyricsResp.translatedLrc,
-          ),
+          () {
+            _lyrics = parsedLyrics;
+            _lyricKeys = List.generate(
+              parsedLyrics.length,
+              (_) => GlobalKey(),
+            );
+            _activeLyricIndex = -1;
+          },
         );
       }
       setState(() => _loading = false);
@@ -84,18 +96,15 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
   void _scrollToActiveLyric(int index) {
     if (_userScrolling) return;
     if (!_lyricsScrollController.hasClients) return;
-    // Estimate each item height ~56px (padding 8*2 + text line ~40)
-    const itemHeight = 56.0;
-    final viewportHeight = _lyricsScrollController.position.viewportDimension;
-    // Top/bottom padding = half viewport to allow first/last lyrics to center
-    final centerPadding = viewportHeight / 2;
-    final targetOffset =
-        centerPadding +
-        index * itemHeight -
-        (viewportHeight / 2) +
-        itemHeight / 2;
-    _lyricsScrollController.animateTo(
-      targetOffset.clamp(0.0, _lyricsScrollController.position.maxScrollExtent),
+    if (index < 0 || index >= _lyricKeys.length) return;
+
+    final keyContext = _lyricKeys[index].currentContext;
+    if (keyContext == null) return;
+
+    Scrollable.ensureVisible(
+      keyContext,
+      alignment: 0.5,
+      alignmentPolicy: ScrollPositionAlignmentPolicy.explicit,
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
     );
@@ -141,6 +150,16 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
         title: Text(song?.title ?? '歌曲'),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        actions: [
+          if (song != null)
+            IconButton(
+              icon: const Icon(Icons.playlist_add),
+              tooltip: '添加到歌单',
+              onPressed: () {
+                AddToPlaylistSheet.show(context, ref, songId: song.id);
+              },
+            ),
+        ],
       ),
       extendBodyBehindAppBar: true,
       body: _loading
@@ -334,6 +353,7 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
               final isActive = index == activeIndex;
 
               return GestureDetector(
+                key: index < _lyricKeys.length ? _lyricKeys[index] : null,
                 onTap: () =>
                     ref.read(playerProvider.notifier).seek(line.timestamp),
                 child: Padding(
@@ -422,6 +442,7 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
                   _playModeIcon(player.playMode),
                   color: colors.textSecondary,
                 ),
+                tooltip: _playModeLabel(player.playMode),
                 onPressed: () =>
                     ref.read(playerProvider.notifier).cyclePlayMode(),
               ),
@@ -473,13 +494,26 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
   IconData _playModeIcon(PlayMode mode) {
     switch (mode) {
       case PlayMode.sequential:
-        return Icons.repeat;
+        return Icons.arrow_forward;
       case PlayMode.loopAll:
         return Icons.repeat;
       case PlayMode.loopOne:
         return Icons.repeat_one;
       case PlayMode.shuffle:
         return Icons.shuffle;
+    }
+  }
+
+  String _playModeLabel(PlayMode mode) {
+    switch (mode) {
+      case PlayMode.sequential:
+        return '顺序播放';
+      case PlayMode.loopAll:
+        return '列表循环';
+      case PlayMode.loopOne:
+        return '单曲循环';
+      case PlayMode.shuffle:
+        return '随机播放';
     }
   }
 }

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { artists as artistsApi } from "../services/api.ts";
+import { AddToPlaylistModal } from "../components/AddToPlaylistModal.tsx";
+import { Button } from "../components/ui/Button.tsx";
 import { Card, CardHeader, CardTitle } from "../components/ui/Card.tsx";
 import { EmptyState } from "../components/ui/EmptyState.tsx";
 import { LoadingState } from "../components/ui/LoadingState.tsx";
@@ -8,27 +10,34 @@ import { BackButton } from "../components/ui/BackButton.tsx";
 import { CoverImage } from "../components/ui/CoverImage.tsx";
 import { DetailHero } from "../components/DetailHero.tsx";
 import { CollectionGrid } from "../components/CollectionGrid.tsx";
-import { Users, Disc } from "lucide-react";
+import { Disc, ListPlus, Users } from "lucide-react";
 import type { Artist } from "../types/index.ts";
 
 export function ArtistDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [artist, setArtist] = useState<Artist | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
-  const fetchArtist = async () => {
-    if (!id) return;
-    try {
-      const data = await artistsApi.get(parseInt(id));
-      setArtist(data);
-    } catch (error) {
-      console.error("Failed to fetch artist:", error);
-    }
-    setIsLoading(false);
-  };
+  const [addSongIds, setAddSongIds] = useState<number[]>([]);
 
   useEffect(() => {
-    fetchArtist();
+    let isMounted = true;
+
+    const loadArtist = async () => {
+      if (!id) return;
+      try {
+        const data = await artistsApi.get(parseInt(id));
+        if (isMounted) setArtist(data);
+      } catch (error) {
+        console.error("Failed to fetch artist:", error);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    void loadArtist();
+    return () => {
+      isMounted = false;
+    };
   }, [id]);
 
   if (isLoading) {
@@ -38,6 +47,8 @@ export function ArtistDetailPage() {
   if (!artist) {
     return <div className="container mx-auto p-6 text-center">艺术家不存在</div>;
   }
+
+  const artistSongIds = artist.songs?.map((song) => song.id) ?? [];
 
   return (
     <div className="container mx-auto p-4 sm:p-6">
@@ -49,8 +60,19 @@ export function ArtistDetailPage() {
         fallbackIcon={Users}
         title={artist.name}
         subtitle={artist.alias}
-        meta={`${artist.albums?.length || 0} 张专辑`}
+        meta={`${artist.song_count ?? artistSongIds.length} 首歌曲 · ${artist.albums?.length || 0} 张专辑`}
         roundCover
+        actions={
+          <Button
+            variant="secondary"
+            onClick={() => setAddSongIds(artistSongIds)}
+            disabled={artistSongIds.length === 0}
+            className="w-full sm:w-auto"
+          >
+            <ListPlus className="mr-2 h-4 w-4" />
+            添加全部到歌单
+          </Button>
+        }
       />
 
       {artist.albums && artist.albums.length > 0
@@ -101,6 +123,12 @@ export function ArtistDetailPage() {
           </>
         )
         : <EmptyState icon={Disc} message="暂无专辑" />}
+
+      <AddToPlaylistModal
+        isOpen={addSongIds.length > 0}
+        onClose={() => setAddSongIds([])}
+        songIds={addSongIds}
+      />
     </div>
   );
 }

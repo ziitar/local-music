@@ -249,6 +249,90 @@ router.post("/api/playlists/:id/songs", async (ctx) => {
   ctx.response.body = { message: "Song added to playlist" };
 });
 
+router.post("/api/playlists/:id/songs/batch", async (ctx) => {
+  const userId = getUserId(ctx);
+  if (!userId) {
+    ctx.response.status = 401;
+    ctx.response.body = { message: "Unauthorized" };
+    return;
+  }
+
+  const playlistId = parseInt(ctx.params.id);
+  if (isNaN(playlistId)) {
+    ctx.response.status = 400;
+    ctx.response.body = { message: "Invalid playlist ID" };
+    return;
+  }
+
+  const body = await ctx.request.body.json();
+  const rawSongIds: unknown[] = Array.isArray(body.songIds) ? body.songIds : [];
+  const songIds: number[] = [
+    ...new Set(
+      rawSongIds
+        .map((songId) => Number(songId))
+        .filter((songId) => Number.isInteger(songId) && songId > 0),
+    ),
+  ];
+
+  if (songIds.length === 0) {
+    ctx.response.status = 400;
+    ctx.response.body = { message: "Song IDs are required" };
+    return;
+  }
+
+  const playlist = await sql`
+    SELECT id FROM playlists WHERE id = ${playlistId} AND user_id = ${userId}
+  `;
+
+  if (playlist.length === 0) {
+    ctx.response.status = 404;
+    ctx.response.body = { message: "Playlist not found" };
+    return;
+  }
+
+  const songs = await sql`
+    SELECT id FROM songs WHERE id IN ${sql(songIds)}
+  ` as Array<{ id: number }>;
+  const existingSongIds = new Set(songs.map((song) => song.id));
+  const rows = songIds
+    .filter((songId: number) => existingSongIds.has(songId))
+    .map((songId: number, index: number) => ({
+      playlist_id: playlistId,
+      song_id: songId,
+      position: index + 1,
+    }));
+
+  if (rows.length === 0) {
+    ctx.response.status = 404;
+    ctx.response.body = { message: "Songs not found" };
+    return;
+  }
+
+  const maxPosition = await sql`
+    SELECT COALESCE(MAX(position), 0) as max_pos FROM playlist_songs WHERE playlist_id = ${playlistId}
+  `;
+  const offset = Number(maxPosition[0].max_pos || 0);
+  const rowsWithPosition = rows.map((row) => ({
+    ...row,
+    position: row.position + offset,
+  }));
+
+  const inserted = await sql`
+    INSERT INTO playlist_songs ${sql(rowsWithPosition, "playlist_id", "song_id", "position")}
+    ON CONFLICT DO NOTHING
+    RETURNING song_id
+  `;
+
+  await sql`UPDATE playlists SET updated_at = NOW() WHERE id = ${playlistId}`;
+
+  ctx.response.status = 201;
+  ctx.response.body = {
+    message: "Songs added to playlist",
+    added: inserted.length,
+    requested: songIds.length,
+  };
+});
+
 router.delete("/api/playlists/:id/songs/:songId", async (ctx) => {
   const userId = getUserId(ctx);
   if (!userId) {

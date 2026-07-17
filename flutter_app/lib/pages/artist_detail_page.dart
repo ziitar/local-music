@@ -6,6 +6,7 @@ import '../models/artist.dart';
 import '../models/song.dart';
 import '../providers/player_provider.dart';
 import '../providers/providers.dart';
+import '../widgets/common/add_to_playlist_sheet.dart';
 import '../widgets/common/song_list_tile.dart';
 import '../widgets/common/song_search_delegate.dart';
 
@@ -40,29 +41,31 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
     }
   }
 
+  List<Song> get _songs => _artist?.songs ?? const [];
+  List<int> get _songIds => _songs.map((song) => song.id).toList();
+
   void _showSearch() {
-    // Flatten songs from all albums
-    final allSongs = <Song>[];
-    for (final album in _artist!.albums!) {
-      if (album.songs != null) {
-        allSongs.addAll(album.songs!);
-      }
-    }
+    if (_songs.isEmpty) return;
 
     showSearch(
       context: context,
       delegate: SongSearchDelegate(
-        songs: allSongs,
+        songs: _songs,
         onSelected: (song) {
-          final index = allSongs.indexOf(song);
+          final index = _songs.indexOf(song);
           ref.read(playerProvider.notifier).playSong(
                 song,
-                queue: allSongs,
+                queue: _songs,
                 index: index,
               );
         },
       ),
     );
+  }
+
+  void _addAllToPlaylist() {
+    if (_songIds.isEmpty) return;
+    AddToPlaylistSheet.show(context, ref, songIds: _songIds);
   }
 
   @override
@@ -72,10 +75,16 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
       appBar: AppBar(
         title: Text(_artist?.name ?? '歌手'),
         actions: [
-          if (_artist?.albums != null && _artist!.albums!.isNotEmpty)
+          if (_songs.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.playlist_add),
+              tooltip: '添加全部到歌单',
+              onPressed: _addAllToPlaylist,
+            ),
+          if (_songs.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.search),
-              onPressed: () => _showSearch(),
+              onPressed: _showSearch,
             ),
         ],
       ),
@@ -85,7 +94,6 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
               ? const Center(child: Text('加载失败'))
               : ListView(
                   children: [
-                    // Header
                     Container(
                       padding: const EdgeInsets.all(24),
                       child: Column(
@@ -95,52 +103,59 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
                             backgroundColor: colors.primaryLight,
                             child: Text(
                               _artist!.name.isNotEmpty ? _artist!.name[0] : '?',
-                              style: const TextStyle(fontSize: 36, color: Colors.white),
+                              style: const TextStyle(
+                                fontSize: 36,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 16),
-                          Text(_artist!.name, style: AppTextStyles.headlineMedium(context)),
+                          Text(
+                            _artist!.name,
+                            style: AppTextStyles.headlineMedium(context),
+                          ),
                           if (_artist!.alias != null)
                             Padding(
                               padding: const EdgeInsets.only(top: 4),
-                              child: Text(_artist!.alias!, style: AppTextStyles.bodyMedium(context)),
+                              child: Text(
+                                _artist!.alias!,
+                                style: AppTextStyles.bodyMedium(context),
+                              ),
                             ),
                           const SizedBox(height: 8),
                           Text(
-                            '${_artist!.songCount ?? 0} 首歌曲 · ${_artist!.albumCount ?? 0} 张专辑',
+                            '${_artist!.songCount ?? _songs.length} 首歌曲 · ${_artist!.albumCount ?? 0} 张专辑',
                             style: AppTextStyles.bodySmall(context),
+                          ),
+                          const SizedBox(height: 16),
+                          OutlinedButton.icon(
+                            onPressed: _songs.isEmpty ? null : _addAllToPlaylist,
+                            icon: const Icon(Icons.playlist_add),
+                            label: const Text('添加全部到歌单'),
                           ),
                         ],
                       ),
                     ),
-                    // Songs from albums
-                    if (_artist!.albums != null)
-                      ..._buildAlbumSongs(),
+                    ..._buildSongs(),
                   ],
                 ),
     );
   }
 
-  List<Widget> _buildAlbumSongs() {
-    final allSongs = <Song>[];
-    for (final album in _artist!.albums!) {
-      if (album.songs != null) {
-        allSongs.addAll(album.songs!);
-      }
-    }
-
-    return allSongs.asMap().entries.map((entry) {
+  List<Widget> _buildSongs() {
+    return _songs.asMap().entries.map((entry) {
       final song = entry.value;
       return SongListTile(
         title: song.title,
         artist: song.artist,
         duration: song.duration,
+        trackNo: song.trackNo,
         onTap: () {
           ref.read(playerProvider.notifier).playSong(
-            song,
-            queue: allSongs,
-            index: entry.key,
-          );
+                song,
+                queue: _songs,
+                index: entry.key,
+              );
         },
       );
     }).toList();

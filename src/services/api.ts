@@ -286,6 +286,16 @@ export const playlists = {
     });
   },
 
+  async addSongs(
+    playlistId: number,
+    songIds: number[],
+  ): Promise<{ message: string; added: number; requested: number }> {
+    return request(`/api/playlists/${playlistId}/songs/batch`, {
+      method: "POST",
+      body: JSON.stringify({ songIds }),
+    });
+  },
+
   async removeSong(
     playlistId: number,
     songId: number,

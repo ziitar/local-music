@@ -85,11 +85,18 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
   final ApiClient _api;
   final CacheService _cache;
   final LoudnessService _loudness;
+  final void Function(PlayMode mode)? _onPlayModeChanged;
 
   AudioPlayer get _player => _handler.player;
 
-  PlayerNotifier(this._handler, this._api, this._cache, this._loudness)
-      : super(const PlayerState()) {
+  PlayerNotifier(
+    this._handler,
+    this._api,
+    this._cache,
+    this._loudness, {
+    void Function(PlayMode mode)? onPlayModeChanged,
+  })  : _onPlayModeChanged = onPlayModeChanged,
+        super(const PlayerState()) {
     _init();
   }
 
@@ -241,8 +248,11 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
     playSong(state.queue[nextIndex], index: nextIndex);
   }
 
-  void setPlayMode(PlayMode mode) {
+  void setPlayMode(PlayMode mode, {bool persist = true}) {
     state = state.copyWith(playMode: mode);
+    if (persist) {
+      _onPlayModeChanged?.call(mode);
+    }
   }
 
   void cyclePlayMode() {
@@ -309,14 +319,24 @@ final playerProvider = StateNotifierProvider<PlayerNotifier, PlayerState>((ref) 
   final api = ref.watch(apiClientProvider);
   final cache = ref.watch(cacheServiceProvider);
   final loudness = ref.watch(loudnessServiceProvider);
-  final notifier = PlayerNotifier(handler, api, cache, loudness);
+  final settingsNotifier = ref.read(playbackSettingsProvider.notifier);
+  final notifier = PlayerNotifier(
+    handler,
+    api,
+    cache,
+    loudness,
+    onPlayModeChanged: (mode) => settingsNotifier.setPlayMode(mode.name),
+  );
 
   // Load persisted settings on startup
   final initialSettings = ref.read(playbackSettingsProvider);
-  notifier.setPlayMode(PlayMode.values.firstWhere(
-    (e) => e.name == initialSettings.playMode,
-    orElse: () => PlayMode.sequential,
-  ));
+  notifier.setPlayMode(
+    PlayMode.values.firstWhere(
+      (e) => e.name == initialSettings.playMode,
+      orElse: () => PlayMode.sequential,
+    ),
+    persist: false,
+  );
   notifier.setQuality(initialSettings.quality);
 
   // Sync loudness normalization toggle from playback settings

@@ -59,7 +59,7 @@ router.get("/api/artists", async (ctx) => {
   };
 });
 
-// Get artist detail with their albums
+// Get artist detail with their albums and songs
 router.get("/api/artists/:id", async (ctx) => {
   const id = parseInt(ctx.params.id);
 
@@ -70,9 +70,14 @@ router.get("/api/artists/:id", async (ctx) => {
   }
 
   const artistResult = await sql`
-    SELECT a.id, a.name, a.alias
+    SELECT a.id, a.name, a.alias,
+           COUNT(DISTINCT sa.song_id) as song_count,
+           COUNT(DISTINCT aa.album_id) as album_count
     FROM artists a
+    LEFT JOIN song_artists sa ON a.id = sa.artist_id
+    LEFT JOIN album_artists aa ON a.id = aa.artist_id
     WHERE a.id = ${id}
+    GROUP BY a.id
   `;
 
   if (artistResult.length === 0) {
@@ -95,9 +100,32 @@ router.get("/api/artists/:id", async (ctx) => {
     song_count: Number(a.song_count),
   }));
 
+  const songs = await sql`
+    SELECT s.id, s.title,
+           COALESCE((
+             SELECT string_agg(ar2.name, ', ' ORDER BY sa2.position)
+             FROM song_artists sa2
+             JOIN artists ar2 ON sa2.artist_id = ar2.id
+             WHERE sa2.song_id = s.id
+           ), 'Unknown Artist') as artist,
+           COALESCE(al.title, 'Unknown Album') as album,
+           s.duration, s.quality, s.format, s.cover_image,
+           s.album_id, s.track_no, s.is_cue_track, s.cue_file_path,
+           s.track_start_time, s.track_end_time,
+           s.integrated_loudness, s.true_peak
+    FROM songs s
+    JOIN song_artists sa ON s.id = sa.song_id
+    LEFT JOIN albums al ON s.album_id = al.id
+    WHERE sa.artist_id = ${id}
+    ORDER BY al.release_year DESC NULLS LAST, al.title, s.track_no NULLS LAST, s.id
+  `;
+
   ctx.response.body = {
     ...artistResult[0],
+    song_count: Number(artistResult[0].song_count),
+    album_count: Number(artistResult[0].album_count),
     albums,
+    songs,
   };
 });
 
