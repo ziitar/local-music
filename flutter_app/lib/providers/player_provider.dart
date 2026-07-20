@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:math';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import '../models/song.dart';
@@ -86,6 +89,7 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
   final CacheService _cache;
   final LoudnessService _loudness;
   final void Function(PlayMode mode)? _onPlayModeChanged;
+  final Random _random = Random();
 
   AudioPlayer get _player => _handler.player;
 
@@ -121,7 +125,7 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
       state = state.copyWith(isPlaying: playerState.playing);
 
       if (playerState.processingState == ProcessingState.completed) {
-        _onSongComplete();
+        unawaited(_onSongComplete());
       }
     });
 
@@ -130,27 +134,27 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
     });
 
     // Listen for skip actions from notification controls
-    _handler.skipToNextStream.listen((_) => next());
-    _handler.skipToPreviousStream.listen((_) => previous());
+    _handler.skipToNextStream.listen((_) => unawaited(next()));
+    _handler.skipToPreviousStream.listen((_) => unawaited(previous()));
   }
 
-  void _onSongComplete() {
+  Future<void> _onSongComplete() async {
     switch (state.playMode) {
       case PlayMode.loopOne:
-        seek(Duration.zero);
-        play();
+        await seek(Duration.zero);
+        await play();
         break;
       case PlayMode.loopAll:
-        next();
+        await next();
         break;
       case PlayMode.shuffle:
-        _playRandom();
+        await _playRandom();
         break;
       case PlayMode.sequential:
         if (state.currentIndex < state.queue.length - 1) {
-          next();
+          await next();
         } else {
-          pause();
+          await pause();
         }
         break;
     }
@@ -159,7 +163,7 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
   /// Play a song, optionally setting a new queue.
   Future<void> playSong(Song song, {List<Song>? queue, int? index}) async {
     final newQueue = queue ?? state.queue;
-    final newIndex = index ?? newQueue.indexOf(song);
+    final newIndex = index ?? newQueue.indexWhere((item) => item.id == song.id);
 
     // Compute loudness multiplier
     final loudnessMult = _loudness.computeVolumeMultiplier(song);
@@ -227,8 +231,30 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
 
   Future<void> next() async {
     if (state.queue.isEmpty) return;
-    final nextIndex = (state.currentIndex + 1) % state.queue.length;
-    await playSong(state.queue[nextIndex], index: nextIndex);
+
+    switch (state.playMode) {
+      case PlayMode.loopOne:
+        final currentIndex = _resolvedCurrentIndex();
+        if (currentIndex < 0) return;
+        await playSong(state.queue[currentIndex], index: currentIndex);
+        break;
+      case PlayMode.shuffle:
+        await _playRandom();
+        break;
+      case PlayMode.sequential:
+        final currentIndex = _resolvedCurrentIndex();
+        if (currentIndex < 0 || currentIndex >= state.queue.length - 1) return;
+        final nextIndex = currentIndex + 1;
+        await playSong(state.queue[nextIndex], index: nextIndex);
+        break;
+      case PlayMode.loopAll:
+        final currentIndex = _resolvedCurrentIndex();
+        final nextIndex = currentIndex < 0
+            ? 0
+            : (currentIndex + 1) % state.queue.length;
+        await playSong(state.queue[nextIndex], index: nextIndex);
+        break;
+    }
   }
 
   Future<void> previous() async {
@@ -239,13 +265,23 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
     await playSong(state.queue[prevIndex], index: prevIndex);
   }
 
-  void _playRandom() {
+  Future<void> _playRandom() async {
     if (state.queue.isEmpty) return;
-    var nextIndex = state.currentIndex;
-    while (nextIndex == state.currentIndex && state.queue.length > 1) {
-      nextIndex = DateTime.now().millisecondsSinceEpoch % state.queue.length;
+    final currentIndex = _resolvedCurrentIndex();
+    var nextIndex = currentIndex;
+    while (nextIndex == currentIndex && state.queue.length > 1) {
+      nextIndex = _random.nextInt(state.queue.length);
     }
-    playSong(state.queue[nextIndex], index: nextIndex);
+    await playSong(state.queue[nextIndex], index: nextIndex);
+  }
+
+  int _resolvedCurrentIndex() {
+    if (state.currentIndex >= 0 && state.currentIndex < state.queue.length) {
+      return state.currentIndex;
+    }
+    final currentSongId = state.currentSong?.id;
+    if (currentSongId == null) return -1;
+    return state.queue.indexWhere((song) => song.id == currentSongId);
   }
 
   void setPlayMode(PlayMode mode, {bool persist = true}) {
@@ -272,10 +308,12 @@ class PlayerNotifier extends StateNotifier<PlayerState> {
     state = state.copyWith(quality: quality);
     // Reload current song if quality changed and something is playing
     if (oldQuality != quality && state.currentSong != null && state.isPlaying) {
-      playSong(
-        state.currentSong!,
-        queue: state.queue,
-        index: state.currentIndex,
+      unawaited(
+        playSong(
+          state.currentSong!,
+          queue: state.queue,
+          index: state.currentIndex,
+        ),
       );
     }
   }

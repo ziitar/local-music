@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/colors.dart';
@@ -25,58 +27,126 @@ class SongDetailPage extends ConsumerStatefulWidget {
 class _SongDetailPageState extends ConsumerState<SongDetailPage> {
   Song? _song;
   List<LyricLine> _lyrics = [];
-  bool _loading = true;
+  bool _songLoading = true;
+  bool _lyricsLoading = false;
+  String? _songError;
+  String? _lyricsError;
+  int? _requestedSongId;
   _ViewMode _viewMode = _ViewMode.cover;
 
   // Lyrics auto-scroll
+  static const double _estimatedLyricExtent = 56;
   final ScrollController _lyricsScrollController = ScrollController();
   List<GlobalKey> _lyricKeys = [];
   int _activeLyricIndex = -1;
   bool _userScrolling = false;
+  int _songLoadToken = 0;
+  int _lyricsLoadToken = 0;
 
   @override
   void initState() {
     super.initState();
-    _load(widget.id);
+    unawaited(_loadSong(widget.id));
   }
 
-  Future<void> _load(int songId) async {
+  @override
+  void didUpdateWidget(covariant SongDetailPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.id != widget.id) {
+      unawaited(_loadSong(widget.id));
+    }
+  }
+
+  Future<void> _loadSong(int songId, {Song? immediateSong}) async {
+    final token = ++_songLoadToken;
+    final visibleSong = immediateSong ?? (_song?.id == songId ? _song : null);
+
     setState(() {
-      _loading = true;
-      _song = null;
-      _lyrics = [];
-      _lyricKeys = [];
-      _activeLyricIndex = -1;
+      _requestedSongId = songId;
+      _songLoading = visibleSong == null;
+      _songError = null;
+      _song = visibleSong;
+      _resetLyricsState(loading: visibleSong != null);
     });
+
+    if (visibleSong != null) {
+      unawaited(_loadLyrics(visibleSong));
+    }
+
     try {
       final api = ref.read(apiClientProvider);
       final song = await api.getSong(songId);
-      if (!mounted) return;
-      setState(() => _song = song);
+      if (!mounted || token != _songLoadToken) return;
 
-      // Load lyrics
-      final lyricsResp = await api.getLyrics(song.title, song.artist);
-      if (!mounted) return;
-      if (lyricsResp.lrc != null) {
-        final parsedLyrics = LrcParser.parse(
-          lyricsResp.lrc!,
-          translatedLrc: lyricsResp.translatedLrc,
-        );
-        setState(
-          () {
-            _lyrics = parsedLyrics;
-            _lyricKeys = List.generate(
-              parsedLyrics.length,
-              (_) => GlobalKey(),
-            );
-            _activeLyricIndex = -1;
-          },
-        );
+      final shouldReloadLyrics = visibleSong == null ||
+          visibleSong.title != song.title ||
+          visibleSong.artist != song.artist;
+
+      setState(() {
+        _song = song;
+        _songLoading = false;
+      });
+
+      if (shouldReloadLyrics) {
+        unawaited(_loadLyrics(song));
       }
-      setState(() => _loading = false);
     } catch (_) {
-      if (!mounted) return;
-      setState(() => _loading = false);
+      if (!mounted || token != _songLoadToken) return;
+      setState(() {
+        _songLoading = false;
+        _songError = '加载失败';
+        if (visibleSong == null) {
+          _lyricsLoading = false;
+        }
+      });
+    }
+  }
+
+  Future<void> _loadLyrics(Song song) async {
+    final token = ++_lyricsLoadToken;
+    setState(() {
+      _resetLyricsState(loading: true);
+    });
+
+    try {
+      final api = ref.read(apiClientProvider);
+      final lyricsResp = await api.getLyrics(song.title, song.artist);
+      if (!mounted || token != _lyricsLoadToken) return;
+
+      final parsedLyrics = lyricsResp.lrc == null
+          ? <LyricLine>[]
+          : LrcParser.parse(
+              lyricsResp.lrc!,
+              translatedLrc: lyricsResp.translatedLrc,
+            );
+
+      setState(() {
+        _lyrics = parsedLyrics;
+        _lyricKeys = List.generate(parsedLyrics.length, (_) => GlobalKey());
+        _activeLyricIndex = -1;
+        _lyricsLoading = false;
+      });
+    } catch (_) {
+      if (!mounted || token != _lyricsLoadToken) return;
+      setState(() {
+        _lyrics = [];
+        _lyricKeys = [];
+        _activeLyricIndex = -1;
+        _lyricsLoading = false;
+        _lyricsError = '歌词加载失败';
+      });
+    }
+  }
+
+  void _resetLyricsState({required bool loading}) {
+    _lyrics = [];
+    _lyricKeys = [];
+    _activeLyricIndex = -1;
+    _userScrolling = false;
+    _lyricsLoading = loading;
+    _lyricsError = null;
+    if (_lyricsScrollController.hasClients) {
+      _lyricsScrollController.jumpTo(0);
     }
   }
 
@@ -99,7 +169,22 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
     if (index < 0 || index >= _lyricKeys.length) return;
 
     final keyContext = _lyricKeys[index].currentContext;
-    if (keyContext == null) return;
+    if (keyContext == null) {
+      final position = _lyricsScrollController.position;
+      final targetOffset = (index * _estimatedLyricExtent) -
+          (position.viewportDimension / 2) +
+          (_estimatedLyricExtent / 2);
+      final clampedOffset = targetOffset.clamp(
+        position.minScrollExtent,
+        position.maxScrollExtent,
+      ).toDouble();
+      _lyricsScrollController.animateTo(
+        clampedOffset,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+      return;
+    }
 
     Scrollable.ensureVisible(
       keyContext,
@@ -130,11 +215,12 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
     final player = ref.watch(playerProvider);
     final playerSong = player.currentSong;
 
-    // When the player advances to a different song, reload details for it.
-    if (playerSong != null && _song != null && playerSong.id != _song!.id) {
-      // Schedule reload after the current build frame completes.
+    // When the player advances to a different song, reload details for it once.
+    if (playerSong != null && playerSong.id != _requestedSongId) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _load(playerSong.id);
+        if (mounted && playerSong.id != _requestedSongId) {
+          unawaited(_loadSong(playerSong.id, immediateSong: playerSong));
+        }
       });
     }
 
@@ -162,16 +248,17 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
         ],
       ),
       extendBodyBehindAppBar: true,
-      body: _loading
+      body: _songLoading && song == null
           ? const Center(child: CircularProgressIndicator())
           : song == null
-          ? const Center(child: Text('加载失败'))
+          ? Center(child: Text(_songError ?? '加载失败'))
           : Stack(
               children: [
                 // Layer 1: Blurred album cover background
                 if (song.coverImage != null)
                   Positioned.fill(
                     child: Image.network(
+                      key: ValueKey('background-${song.id}-${song.coverImage}'),
                       '${ref.read(apiClientProvider).baseUrl}${song.coverImage}',
                       fit: BoxFit.cover,
                       errorBuilder: (_, _, _) => const SizedBox.shrink(),
@@ -281,6 +368,7 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
               ],
             ),
             child: CoverImage(
+              key: ValueKey('cover-${song.id}-${song.coverImage}'),
               imageUrl: song.coverImage != null
                   ? '${ref.read(apiClientProvider).baseUrl}${song.coverImage}'
                   : null,
@@ -307,8 +395,30 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
   }
 
   Widget _buildLyricsView() {
+    if (_lyricsLoading) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(
+              width: 28,
+              height: 28,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(height: 12),
+            Text('歌词加载中...', style: AppTextStyles.bodyMedium(context)),
+          ],
+        ),
+      );
+    }
+
     if (_lyrics.isEmpty) {
-      return Center(child: Text('暂无歌词', style: AppTextStyles.bodyMedium(context)));
+      return Center(
+        child: Text(
+          _lyricsError ?? '暂无歌词',
+          style: AppTextStyles.bodyMedium(context),
+        ),
+      );
     }
 
     final colors = AppColors.of(context);
@@ -335,9 +445,11 @@ class _SongDetailPageState extends ConsumerState<SongDetailPage> {
               _userScrolling = true;
             } else if (notification is ScrollEndNotification) {
               // Resume auto-scroll after 3 seconds of no manual scrolling
-              Future.delayed(const Duration(seconds: 3), () {
-                if (mounted) setState(() => _userScrolling = false);
-              });
+              unawaited(
+                Future.delayed(const Duration(seconds: 3), () {
+                  if (mounted) setState(() => _userScrolling = false);
+                }),
+              );
             }
             return false;
           },
